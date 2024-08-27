@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView } from 'react-native';
-import { useNavigation } from '@react-navigation/native'; // Use the correct hook
+import { useNavigation } from '@react-navigation/native';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 import ClassroomBox from '../../components/ClassroomBox';
 
 export default function ClassroomScreen() {
@@ -10,7 +11,10 @@ export default function ClassroomScreen() {
     <View style={styles.container}>
       <View style={styles.headerBox}>
         <Text style={styles.headingText}>Classrooms</Text>
-        <TouchableOpacity onPress={() => navigation.navigate('AvatarOptions')}>
+        <TouchableOpacity 
+          style={styles.avatarTouchableArea} 
+          onPress={() => navigation.navigate('AvatarOptions')}
+        >
           <Image
             style={styles.avatar}
             source={require('../../assets/avatar.png')}
@@ -41,6 +45,9 @@ export default function ClassroomScreen() {
           <ClassroomBox heading="Classroom" subtitle="Welcome to your classroom" />
         </ScrollView>
       </View>
+      <TouchableOpacity style={styles.floatingButton} onPress={() => {/* Handle button press */}}>
+        <Icon name="add" size={24} color="#fff" />
+      </TouchableOpacity>
     </View>
   );
 }
@@ -51,7 +58,7 @@ const styles = StyleSheet.create({
   },
   headerBox: {
     backgroundColor: '#f0f0f0',
-    paddingTop: 55,
+    paddingTop: 40,
     paddingLeft: 20,
     paddingBottom: 10,
     paddingRight: 20,
@@ -70,6 +77,14 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
   },
+  avatarTouchableArea: {
+    width: 60, // Increased width for touchable area
+    height: 60, // Increased height for touchable area
+    justifyContent: 'center', 
+    alignItems: 'center',
+    borderRadius: 30, // Match the avatar border radius
+    backgroundColor: 'transparent', // Ensure the background is transparent
+  },
   avatar: {
     width: 40,
     height: 40,
@@ -80,5 +95,21 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     flexDirection: 'column',
     paddingBottom: 20,
+  },
+  floatingButton: {
+    position: 'absolute',
+    bottom: 20,
+    right: 20,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#007BFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 5,
   },
 });

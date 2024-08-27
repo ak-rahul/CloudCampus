@@ -35,14 +35,15 @@ function DrawerNavigator() {
 
 export default function App() {
   return (
-      <RootStack.Navigator
-        screenOptions={{
-          headerShown: false,
-        }}>
-        <RootStack.Screen name="DrawerNavigator" component={DrawerNavigator} options={{ headerShown: false }} />
-        <RootStack.Group screenOptions={{ presentation: 'modal' }}>
-          <RootStack.Screen name="AvatarOptions" component={AvatarOptions} options={{ headerShown: false }}/>
-        </RootStack.Group>
-      </RootStack.Navigator>
+    <RootStack.Navigator
+      screenOptions={{
+        headerShown: false,
+      }}
+    >
+      <RootStack.Screen name="DrawerNavigator" component={DrawerNavigator} />
+      <RootStack.Group screenOptions={{ presentation: 'modal' }}>
+        <RootStack.Screen name="AvatarOptions" component={AvatarOptions} />
+      </RootStack.Group>
+    </RootStack.Navigator>
   );
 }
