@@ -1,16 +1,15 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
-import { useRouter } from "expo-router";
+import React from 'react';
+import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView } from 'react-native';
 import { useNavigation } from '@react-navigation/native'; // Use the correct hook
+import ClassroomBox from '../../components/ClassroomBox';
 
 export default function ClassroomScreen() {
-  const router = useRouter();
   const navigation = useNavigation();
 
   return (
     <View style={styles.container}>
       <View style={styles.headerBox}>
-        <Text style={styles.headingText}>Classroom</Text>
+        <Text style={styles.headingText}>Classrooms</Text>
         <TouchableOpacity onPress={() => navigation.navigate('AvatarOptions')}>
           <Image
             style={styles.avatar}
@@ -18,8 +17,29 @@ export default function ClassroomScreen() {
           />
         </TouchableOpacity>
       </View>
-      <View style={styles.content}>
-        <Text style={styles.text}>Classroom Screen</Text>
+      <View style={styles.boxContainer}>
+        <ScrollView scrollEnabled>
+          <ClassroomBox heading="Classroom" subtitle="Welcome to your classroom" />
+          <ClassroomBox heading="Classroom" subtitle="Welcome to your classroom" />
+          <ClassroomBox heading="Classroom" subtitle="Welcome to your classroom" />
+          <ClassroomBox heading="Classroom" subtitle="Welcome to your classroom" />
+          <ClassroomBox heading="Classroom" subtitle="Welcome to your classroom" />
+          <ClassroomBox heading="Classroom" subtitle="Welcome to your classroom" />
+          <ClassroomBox heading="Classroom" subtitle="Welcome to your classroom" />
+          <ClassroomBox heading="Classroom" subtitle="Welcome to your classroom" />
+          <ClassroomBox heading="Classroom" subtitle="Welcome to your classroom" />
+          <ClassroomBox heading="Classroom" subtitle="Welcome to your classroom" />
+          <ClassroomBox heading="Classroom" subtitle="Welcome to your classroom" />
+          <ClassroomBox heading="Classroom" subtitle="Welcome to your classroom" />
+          <ClassroomBox heading="Classroom" subtitle="Welcome to your classroom" />
+          <ClassroomBox heading="Classroom" subtitle="Welcome to your classroom" />
+          <ClassroomBox heading="Classroom" subtitle="Welcome to your classroom" />
+          <ClassroomBox heading="Classroom" subtitle="Welcome to your classroom" />
+          <ClassroomBox heading="Classroom" subtitle="Welcome to your classroom" />
+          <ClassroomBox heading="Classroom" subtitle="Welcome to your classroom" />
+          <ClassroomBox heading="Classroom" subtitle="Welcome to your classroom" />
+          <ClassroomBox heading="Classroom" subtitle="Welcome to your classroom" />
+        </ScrollView>
       </View>
     </View>
   );
@@ -55,13 +75,10 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 20,
   },
-  content: {
+  boxContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  text: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    flexGrow: 1,
+    flexDirection: 'column',
+    paddingBottom: 20,
   },
 });
