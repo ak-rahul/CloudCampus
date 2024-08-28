@@ -1,10 +1,24 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 
 export default function ScannerScreen() {
+  const navigation = useNavigation();
+
   return (
     <View style={styles.container}>
-      <Text style={styles.text}>Home Screen</Text>
+      <View style={styles.headerBox}>
+        <Text style={styles.headingText}>Doc-Scanner</Text>
+        <TouchableOpacity 
+          style={styles.avatarTouchableArea} 
+          onPress={() => navigation.navigate('AvatarOptions')}
+        >
+          <Image
+            style={styles.avatar}
+            source={require('../../assets/avatar.png')}
+          />
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -12,11 +26,39 @@ export default function ScannerScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
+  },
+  headerBox: {
+    backgroundColor: '#f0f0f0',
+    paddingTop: 40,
+    paddingLeft: 20,
+    paddingBottom: 10,
+    paddingRight: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ddd',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 5,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
   },
-  text: {
-    fontSize: 18,
+  headingText: {
+    fontSize: 24,
     fontWeight: 'bold',
+  },
+  avatarTouchableArea: {
+    width: 60,
+    height: 60,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 30,
+    backgroundColor: 'transparent',
+  },
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
   },
 });

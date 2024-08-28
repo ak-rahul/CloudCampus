@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Button } from 'react-native';
 
@@ -20,8 +20,17 @@ export default function AvatarOptions() {
             onPress={handleClose}
             title="Close"
             color="#841584"
-            accessibilityLabel="Learn more about this purple button"
+            accessibilityLabel="Close modal"
           />
+        </View>
+        <View style={styles.avatarBox}>
+          <View style={styles.avatarContainer}>
+            <Image
+              style={styles.avatar}
+              source={require('../../assets/avatar.png')} // Replace with your avatar image path
+            />
+            <Text style={styles.personName}>John Doe</Text>
+          </View>
         </View>
         <View style={styles.optionsContainer}>
           <Text style={styles.option}>Option 1</Text>
@@ -37,43 +46,49 @@ const styles = StyleSheet.create({
   modalContainer: {
     flex: 1,
     justifyContent: 'flex-end',
+    backgroundColor: '#f8f8f8', // Off-white background for the entire modal
   },
   drawer: {
     height: '100%',
     width: '100%',
-    backgroundColor: '#ffffff',
+    backgroundColor: '#f8f8f8', // Off-white background for the drawer
     padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 5,
   },
   headerBox: {
-    flexDirection: 'row', // Align items horizontally
-    alignItems: 'center', // Align items vertically// Center contents vertically
-    justifyContent: 'space-between', // Center contents horizontally
-    paddingBottom: 20, // Space between header and options
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingBottom: 20,
     borderBottomWidth: 1,
     borderBottomColor: '#ddd',
-    marginBottom: 10, // Allow absolute positioning of close button
-  },
-  closeButton: {
-    position: 'absolute',
-    right: 10, // Adjust as needed
-    top: 0, // Adjust as needed
-    padding: 12, // Increase touchable area
-    backgroundColor: '#f5f5f5', // Background color for the button
-    borderRadius: 5, // Rounded corners for the button
-  },
-  closeText: {
-    fontSize: 16,
-    color: '#007BFF', // Text color
+    marginBottom: 10,
   },
   headerText: {
     fontSize: 24,
     fontWeight: 'bold',
     flex: 1, // Ensure text takes remaining space
+  },
+  avatarBox: {
+    backgroundColor: '#ffffff', // White background for the avatar box
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 20,
+  },
+  avatarContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  avatar: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    marginRight: 20,
+  },
+  personName: {
+    fontSize: 20,
+    fontWeight: 'bold',
   },
   optionsContainer: {
     flex: 1,
