@@ -4,6 +4,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 import ScannerScreen from './ScannerScreen';
 import ClassroomScreen from './ClassroomScreen';
 import AvatarOptions from './AvatarOptions';
+import CustomDrawerContent from '../../components/CustomDrawerContent';
 
 const Drawer = createDrawerNavigator();
 const RootStack = createStackNavigator();
@@ -12,6 +13,7 @@ function DrawerNavigator() {
   return (
     <Drawer.Navigator
       initialRouteName="Classroom"
+      drawerContent={(props) => <CustomDrawerContent {...props} />}
       screenOptions={{
         headerShown: false,
         drawerType: 'front',

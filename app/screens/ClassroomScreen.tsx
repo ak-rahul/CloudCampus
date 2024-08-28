@@ -1,11 +1,23 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import ClassroomBox from '../../components/ClassroomBox';
+import OptionsModal from '../../components/OptionsModal';
 
 export default function ClassroomScreen() {
   const navigation = useNavigation();
+  const [modalVisible, setModalVisible] = useState(false);
+
+  const handleCreateClass = () => {
+    setModalVisible(false);
+    // Handle class creation
+  };
+
+  const handleJoinClass = () => {
+    setModalVisible(false);
+    // Handle joining a class
+  };
 
   return (
     <View style={styles.container}>
@@ -45,9 +57,19 @@ export default function ClassroomScreen() {
           <ClassroomBox heading="Classroom" subtitle="Welcome to your classroom" />
         </ScrollView>
       </View>
-      <TouchableOpacity style={styles.floatingButton} onPress={() => {/* Handle button press */}}>
+      <TouchableOpacity
+        style={styles.floatingButton}
+        onPress={() => setModalVisible(true)} // Show the modal when the button is pressed
+      >
         <Icon name="add" size={24} color="#fff" />
       </TouchableOpacity>
+
+      <OptionsModal
+        visible={modalVisible} // Pass the modal visibility state
+        onClose={() => setModalVisible(false)} // Close the modal when requested
+        onCreateClass={handleCreateClass} // Handle creating a class
+        onJoinClass={handleJoinClass} // Handle joining a class
+      />
     </View>
   );
 }
