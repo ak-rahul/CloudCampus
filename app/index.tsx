@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Image, Animated } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import { useRouter } from "expo-router";
+import { useRouter } from 'expo-router';
 
 export default function Index() {
   const [scale] = useState(new Animated.Value(1)); 
@@ -25,7 +24,7 @@ export default function Index() {
 
   const handleSignIn = () => {
     console.log('Sign-In Button Pressed');
-    router.push("/screens");
+    router.push('/auth');
   };
 
   return (
