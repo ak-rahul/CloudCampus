@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Animated } from 'react-native';
-import { auth } from '../../firebase/firebaeConfig'; // Import the auth
+import { auth } from '../../firebase/firebaseConfig'; // Import the auth
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { useRouter } from "expo-router";
 import { LinearGradient } from 'expo-linear-gradient';

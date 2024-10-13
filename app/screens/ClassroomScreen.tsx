@@ -1,13 +1,39 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import ClassroomBox from '../../components/ClassroomBox';
 import OptionsModal from '../../components/OptionsModal';
+import { getFirestore, doc, getDoc } from 'firebase/firestore';
+import { auth } from '../../firebase/firebaseConfig'; // Ensure auth is correctly imported
 
 export default function ClassroomScreen() {
   const navigation = useNavigation();
   const [modalVisible, setModalVisible] = useState(false);
+  const [userAvatar, setUserAvatar] = useState(null);
+  const db = getFirestore(); // Get Firestore instance
+
+  useEffect(() => {
+    const fetchUserAvatar = async () => {
+      const user = auth.currentUser; // Get the currently signed-in user
+      if (user) {
+        try {
+          const userDoc = await getDoc(doc(db, 'users', user.uid)); // Get user document
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            setUserAvatar(userData.avatar); // Set the user's avatar URL
+          } else {
+            console.log('No such document!');
+          }
+        } catch (error) {
+          console.error('Error fetching user avatar: ', error);
+          Alert.alert('Error', 'Could not fetch user avatar.');
+        }
+      }
+    };
+
+    fetchUserAvatar(); // Call the function to fetch the user's avatar
+  }, []);
 
   const handleCreateClass = () => {
     setModalVisible(false);
@@ -29,32 +55,20 @@ export default function ClassroomScreen() {
         >
           <Image
             style={styles.avatar}
-            source={require('../../assets/avatar.png')}
+            source={userAvatar ? { uri: userAvatar } : require('../../assets/avatar.png')} // Display user avatar or default avatar
           />
         </TouchableOpacity>
       </View>
       <View style={styles.boxContainer}>
         <ScrollView scrollEnabled>
-          <ClassroomBox heading="Classroom" subtitle="Welcome to your classroom" />
-          <ClassroomBox heading="Classroom" subtitle="Welcome to your classroom" />
-          <ClassroomBox heading="Classroom" subtitle="Welcome to your classroom" />
-          <ClassroomBox heading="Classroom" subtitle="Welcome to your classroom" />
-          <ClassroomBox heading="Classroom" subtitle="Welcome to your classroom" />
-          <ClassroomBox heading="Classroom" subtitle="Welcome to your classroom" />
-          <ClassroomBox heading="Classroom" subtitle="Welcome to your classroom" />
-          <ClassroomBox heading="Classroom" subtitle="Welcome to your classroom" />
-          <ClassroomBox heading="Classroom" subtitle="Welcome to your classroom" />
-          <ClassroomBox heading="Classroom" subtitle="Welcome to your classroom" />
-          <ClassroomBox heading="Classroom" subtitle="Welcome to your classroom" />
-          <ClassroomBox heading="Classroom" subtitle="Welcome to your classroom" />
-          <ClassroomBox heading="Classroom" subtitle="Welcome to your classroom" />
-          <ClassroomBox heading="Classroom" subtitle="Welcome to your classroom" />
-          <ClassroomBox heading="Classroom" subtitle="Welcome to your classroom" />
-          <ClassroomBox heading="Classroom" subtitle="Welcome to your classroom" />
-          <ClassroomBox heading="Classroom" subtitle="Welcome to your classroom" />
-          <ClassroomBox heading="Classroom" subtitle="Welcome to your classroom" />
-          <ClassroomBox heading="Classroom" subtitle="Welcome to your classroom" />
-          <ClassroomBox heading="Classroom" subtitle="Welcome to your classroom" />
+          {/* Add ClassroomBox components here */}
+          {[...Array(10)].map((_, index) => (
+            <ClassroomBox 
+              key={index}
+              heading="Classroom"
+              subtitle="Welcome to your classroom"
+            />
+          ))}
         </ScrollView>
       </View>
       <TouchableOpacity

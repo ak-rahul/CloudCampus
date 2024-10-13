@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Animated } from 'react-native';
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import { auth } from '../../firebase/firebaeConfig';
+import { auth } from '../../firebase/firebaseConfig';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from "expo-router";
 
@@ -42,10 +42,19 @@ export default function SignUp() {
     }
 
     try {
+      // Sign up the user using Firebase Authentication
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      console.log('User signed up: ', userCredential.user);
-      Alert.alert('Sign-Up Successful', 'You can now sign in with your account.');
-      router.push("/auth/SignIn"); // Redirect to sign-in after sign-up
+      const user = userCredential.user; // This contains the user's information
+      console.log('User signed up: ', user);
+      
+      // Show a success message
+      Alert.alert('Sign-Up Successful', 'You can now select your avatar.');
+
+      // Navigate to the avatar selection screen and pass the uid as a param
+      router.push({
+        pathname: "/auth/SelectAvatar",
+        params: { uid: user.uid }, // Passing the user UID to the avatar selection screen
+      });
     } catch (error) {
       console.error('Error signing up: ', error);
       Alert.alert('Sign-Up Error', error.message);
