@@ -1,22 +1,23 @@
 import React, { useState, useRef } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Animated } from 'react-native';
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import { auth } from '../../firebase/firebaseConfig';
+import { auth, firestore } from '../../firebase/firebaseConfig'; // Ensure firestore is imported
+import { doc, setDoc } from 'firebase/firestore';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from "expo-router";
 
 export default function SignUp() {
-  const [name, setName] = useState(''); // Name field
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState(''); // Confirm Password field
+  const [confirmPassword, setConfirmPassword] = useState('');
   const router = useRouter();
 
   const scaleValue = useRef(new Animated.Value(1)).current;
 
   const handlePressIn = () => {
     Animated.spring(scaleValue, {
-      toValue: 0.95, // Slightly scale down
+      toValue: 0.95,
       friction: 5,
       useNativeDriver: true,
     }).start();
@@ -24,7 +25,7 @@ export default function SignUp() {
 
   const handlePressOut = () => {
     Animated.spring(scaleValue, {
-      toValue: 1, // Reset to original size
+      toValue: 1,
       friction: 5,
       useNativeDriver: true,
     }).start();
@@ -44,16 +45,20 @@ export default function SignUp() {
     try {
       // Sign up the user using Firebase Authentication
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user; // This contains the user's information
-      console.log('User signed up: ', user);
-      
-      // Show a success message
-      Alert.alert('Sign-Up Successful', 'You can now select your avatar.');
+      const user = userCredential.user;
 
-      // Navigate to the avatar selection screen and pass the uid as a param
+      // Save user data in Firestore under "user-info" with an empty "avatar" field
+      await setDoc(doc(firestore, "user-info", user.uid), {
+        name: name,
+        email: email,
+        avatar: ""
+      });
+
+      // Show success message and navigate to avatar selection
+      Alert.alert('Sign-Up Successful', 'You can now select your avatar.');
       router.push({
         pathname: "/auth/SelectAvatar",
-        params: { uid: user.uid }, // Passing the user UID to the avatar selection screen
+        params: { uid: user.uid },
       });
     } catch (error) {
       console.error('Error signing up: ', error);
@@ -68,7 +73,6 @@ export default function SignUp() {
     >
       <View style={styles.formContainer}>
         <Text style={styles.title}>Sign Up</Text>
-
         <TextInput
           style={styles.input}
           placeholder="Full Name"
@@ -77,7 +81,6 @@ export default function SignUp() {
           autoCapitalize="words"
           placeholderTextColor="#aaa"
         />
-
         <TextInput
           style={styles.input}
           placeholder="Email"
@@ -87,7 +90,6 @@ export default function SignUp() {
           autoCapitalize="none"
           placeholderTextColor="#aaa"
         />
-
         <TextInput
           style={styles.input}
           placeholder="Password"
@@ -96,7 +98,6 @@ export default function SignUp() {
           secureTextEntry
           placeholderTextColor="#aaa"
         />
-
         <TextInput
           style={styles.input}
           placeholder="Confirm Password"
@@ -105,7 +106,6 @@ export default function SignUp() {
           secureTextEntry
           placeholderTextColor="#aaa"
         />
-
         <Animated.View style={{ transform: [{ scale: scaleValue }] }}>
           <TouchableOpacity
             onPress={handleSignUp}

@@ -10,7 +10,7 @@ import { auth } from '../../firebase/firebaseConfig'; // Ensure auth is correctl
 export default function ClassroomScreen() {
   const navigation = useNavigation();
   const [modalVisible, setModalVisible] = useState(false);
-  const [userAvatar, setUserAvatar] = useState(null);
+  const [userAvatar, setUserAvatar] = useState<string | null>(null); // State for avatar URL
   const db = getFirestore(); // Get Firestore instance
 
   useEffect(() => {
@@ -18,10 +18,11 @@ export default function ClassroomScreen() {
       const user = auth.currentUser; // Get the currently signed-in user
       if (user) {
         try {
-          const userDoc = await getDoc(doc(db, 'users', user.uid)); // Get user document
+          // Fetch user information from the 'user-info' collection instead of 'users'
+          const userDoc = await getDoc(doc(db, 'user-info', user.uid)); // Adjusted to use 'user-info'
           if (userDoc.exists()) {
             const userData = userDoc.data();
-            setUserAvatar(userData.avatar); // Set the user's avatar URL
+            setUserAvatar(userData.avatar); // Set the user's avatar URL from 'user-info' collection
           } else {
             console.log('No such document!');
           }
@@ -32,7 +33,7 @@ export default function ClassroomScreen() {
       }
     };
 
-    fetchUserAvatar(); // Call the function to fetch the user's avatar
+    fetchUserAvatar(); // Fetch the avatar when the component is mounted
   }, []);
 
   const handleCreateClass = () => {
@@ -55,7 +56,7 @@ export default function ClassroomScreen() {
         >
           <Image
             style={styles.avatar}
-            source={userAvatar ? { uri: userAvatar } : require('../../assets/avatar.png')} // Display user avatar or default avatar
+            source={userAvatar ? { uri: userAvatar } : require('../../assets/avatar.png')} // Use the avatar from Firestore or default avatar
           />
         </TouchableOpacity>
       </View>
@@ -122,8 +123,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent', // Ensure the background is transparent
   },
   avatar: {
-    width: 40,
-    height: 40,
+    width: 47,
+    height: 47,
     borderRadius: 20,
   },
   boxContainer: {

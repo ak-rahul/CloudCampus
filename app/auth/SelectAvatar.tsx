@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, FlatList, Alert, ActivityIndicator, Animated } from 'react-native';
-import { getStorage, ref, listAll, getDownloadURL } from 'firebase/storage';
-import { getDatabase, ref as dbRef, set } from 'firebase/database';
+import { getStorage, ref as storageRef, listAll, getDownloadURL } from 'firebase/storage';
+import { getFirestore, doc, setDoc } from 'firebase/firestore';
 import { auth } from '../../firebase/firebaseConfig';
 import { useRouter } from "expo-router";
 
@@ -10,9 +10,8 @@ export default function SelectAvatar() {
   const [loading, setLoading] = useState(true);
   const [selectedAvatar, setSelectedAvatar] = useState(null);
   const router = useRouter();
-  const database = getDatabase();
+  const firestore = getFirestore();
 
-  // Create animated values for each avatar and the button
   const animatedScales = useMemo(() => avatars.map(() => new Animated.Value(1)), [avatars]);
   const buttonScale = useRef(new Animated.Value(1)).current;
 
@@ -20,7 +19,7 @@ export default function SelectAvatar() {
     const fetchAvatars = async () => {
       try {
         const storage = getStorage();
-        const avatarRef = ref(storage, 'avatars/');
+        const avatarRef = storageRef(storage, 'avatars/');
         const result = await listAll(avatarRef);
 
         const avatarUrls = await Promise.all(
@@ -39,20 +38,19 @@ export default function SelectAvatar() {
   }, []);
 
   const handleAvatarSelect = (avatarUrl, index) => {
-    // Trigger pop animation for the selected avatar
     Animated.sequence([
       Animated.timing(animatedScales[index], {
-        toValue: 1.2, // Scale up
+        toValue: 1.2,
         duration: 150,
         useNativeDriver: true,
       }),
       Animated.timing(animatedScales[index], {
-        toValue: 1, // Scale back down
+        toValue: 1,
         duration: 150,
         useNativeDriver: true,
       }),
     ]).start(() => {
-      setSelectedAvatar(avatarUrl); // Set selected avatar after animation
+      setSelectedAvatar(avatarUrl);
     });
   };
 
@@ -60,13 +58,16 @@ export default function SelectAvatar() {
     try {
       const user = auth.currentUser;
       if (user && selectedAvatar) {
-        await set(dbRef(database, 'users/' + user.uid), {
+        // Reference to the user's document in the "user-info" collection using their UID
+        const avatarDocRef = doc(firestore, 'user-info', user.uid);
+
+        // Update the "avatar" field in the existing "user-info" document
+        await setDoc(avatarDocRef, {
           avatar: selectedAvatar,
-          email: user.email,
-        });
+        }, { merge: true }); // Merge ensures we update only the avatar field without overwriting other fields
 
         Alert.alert('Success', 'Avatar selected successfully!');
-        router.push('/auth');
+        router.push('/auth'); // Navigate to the next screen
       } else {
         Alert.alert('Error', 'No user is signed in or no avatar is selected.');
       }
@@ -117,7 +118,6 @@ export default function SelectAvatar() {
         )}
         contentContainerStyle={styles.listContainer}
       />
-      {/* Only render the button if an avatar is selected */}
       {selectedAvatar && (
         <View style={styles.buttonContainer}>
           <Animated.View style={{ transform: [{ scale: buttonScale }] }}>
@@ -176,7 +176,7 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   buttonContainer: {
-    marginTop: 40, // Adjust this value if necessary
+    marginTop: 40,
     alignItems: 'center',
   },
   getStartedButton: {
@@ -184,11 +184,11 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     paddingHorizontal: 30,
     borderRadius: 5,
-    elevation: 3, // Adds a shadow effect for Android
-    shadowColor: '#000', // Shadow color for iOS
-    shadowOffset: { width: 0, height: 2 }, // Shadow offset for iOS
-    shadowOpacity: 0.2, // Shadow opacity for iOS
-    shadowRadius: 2, // Shadow radius for iOS
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
   },
   buttonText: {
     color: '#fff',
