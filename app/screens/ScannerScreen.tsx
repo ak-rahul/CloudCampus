@@ -1,71 +1,88 @@
-import React,{ useState, useRef } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, Animated } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+// ScannerScreen.js
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, StyleSheet, Image, TouchableOpacity, Animated, Alert } from 'react-native';
+import { useRouter } from "expo-router";  // Use the useRouter hook for navigation
+import { getFirestore, getDoc, doc } from 'firebase/firestore';
+import { auth } from '../../firebase/firebaseConfig';
 
 export default function ScannerScreen() {
-  const navigation = useNavigation();
+  const router = useRouter();
   const [selectedOption, setSelectedOption] = useState('Recent');
-  const animatedValue = useRef(new Animated.Value(0)).current; // For smooth animation
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const animatedValue = useRef(new Animated.Value(0)).current;
+  const db = getFirestore();
 
-  // Handle toggle
+  useEffect(() => {
+    const fetchUserAvatar = async () => {
+      const user = auth.currentUser;
+      if (user) {
+        try {
+          const userDoc = await getDoc(doc(db, 'user-info', user.uid));
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            setAvatarUrl(userData.avatar);
+          }
+        } catch (error) {
+          console.error('Error fetching user avatar: ', error);
+          Alert.alert('Error', 'Could not fetch user avatar.');
+        }
+      }
+    };
+    fetchUserAvatar();
+  }, []);
+
   const toggleOption = (option) => {
     setSelectedOption(option);
-
-    // Animate between "Recent" (left) and "All" (right)
     Animated.timing(animatedValue, {
-      toValue: option === 'Recent' ? 0 : 1,  // Toggle between 0 and 1
+      toValue: option === 'Recent' ? 0 : 1,
       duration: 300,
       useNativeDriver: false,
     }).start();
   };
 
-  // Interpolate animation (0 for Recent, 1 for All)
   const translateX = animatedValue.interpolate({
     inputRange: [0, 1],
-    outputRange: [0, 130],  // Move across the width of one toggle button (half of the toggleContainer width)
+    outputRange: [0, 130],
   });
 
   return (
     <View style={styles.container}>
       <View style={styles.headerBox}>
         <Text style={styles.headingText}>Doc-Scanner</Text>
-        <TouchableOpacity 
-          style={styles.avatarTouchableArea} 
-          onPress={() => navigation.navigate('AvatarOptions')}
+        <TouchableOpacity
+          style={styles.avatarTouchableArea}
+          onPress={() => router.push('/screens/AvatarOptions')}  // Update navigation for AvatarOptions
         >
-          <Image
-            style={styles.avatar}
-            source={require('../../assets/avatar.png')}
-          />
+          {avatarUrl && (
+            <Image style={styles.avatar} source={{ uri: avatarUrl }} />
+          )}
         </TouchableOpacity>
       </View>
 
-      {/* Combined Toggle Button */}
       <View style={styles.toggleContainer}>
         <Animated.View style={[styles.animatedBackground, { transform: [{ translateX }] }]} />
 
-        {/* "Recent" button */}
         <TouchableOpacity style={styles.toggleButton} onPress={() => toggleOption('Recent')}>
-          <Text style={selectedOption === 'Recent' ? styles.activeText : styles.inactiveText}>
-            Recent
-          </Text>
+          <Text style={selectedOption === 'Recent' ? styles.activeText : styles.inactiveText}>Recent</Text>
         </TouchableOpacity>
 
-        {/* "All" button */}
         <TouchableOpacity style={styles.toggleButton} onPress={() => toggleOption('All')}>
-          <Text style={selectedOption === 'All' ? styles.activeText : styles.inactiveText}>
-            All
-          </Text>
+          <Text style={selectedOption === 'All' ? styles.activeText : styles.inactiveText}>All</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Floating Scan Button */}
-      <TouchableOpacity style={styles.scanButton} onPress={() => alert('Scan button pressed!')}>
+      <TouchableOpacity
+        style={styles.scanButton}
+        onPress={() => router.push('/scanner')}  // Navigate to ScanningScreen
+      >
         <Text style={styles.scanButtonText}>Scan</Text>
       </TouchableOpacity>
     </View>
   );
 }
+
+// Styles (remain the same as in your provided code)
+
 
 const styles = StyleSheet.create({
   container: {
@@ -101,8 +118,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   avatar: {
-    width: 40,
-    height: 40,
+    width: 47,
+    height: 47,
     borderRadius: 20,
   },
   toggleContainer: {
@@ -110,20 +127,20 @@ const styles = StyleSheet.create({
     backgroundColor: '#E0E0E0',
     borderRadius: 25,
     padding: 4,
-    width: 260,  // Adjust the width to fit both buttons (130 each)
+    width: 260,
     position: 'relative',
-    alignSelf: 'center',  // Center horizontally
-    marginTop: 20,        // Add margin to push it below the header
+    alignSelf: 'center',
+    marginTop: 20,
   },
   toggleButton: {
     flex: 1,
-    justifyContent: 'center', // Vertically centers the content
+    justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 12,      // Adjusted padding for better centering
+    paddingVertical: 12,
   },
   animatedBackground: {
     position: 'absolute',
-    width: 130,  // Adjust width to be half of the toggleContainer width (since there are 2 buttons)
+    width: 130,
     height: '100%',
     alignSelf: 'center',
     backgroundColor: '#007BFF',
@@ -138,9 +155,9 @@ const styles = StyleSheet.create({
   },
   scanButton: {
     position: 'absolute',
-    bottom: 50, // Adjust this value to move the button higher or lower
-    left: '57%', // Center horizontally
-    marginLeft: -65, // Half of the button width (130 / 2) for centering
+    bottom: 50,
+    left: '57%',
+    marginLeft: -65,
     backgroundColor: '#007BFF',
     borderRadius: 25,
     paddingVertical: 12,

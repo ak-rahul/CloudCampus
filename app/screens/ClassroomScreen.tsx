@@ -5,20 +5,19 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import ClassroomBox from '../../components/ClassroomBox';
 import OptionsModal from '../../components/OptionsModal';
 import { getFirestore, doc, getDoc } from 'firebase/firestore';
-import { auth } from '../../firebase/firebaseConfig'; // Ensure auth is correctly imported
+import { auth } from '../../firebase/firebaseConfig';
 
 export default function ClassroomScreen() {
   const navigation = useNavigation();
   const [modalVisible, setModalVisible] = useState(false);
-  const [userAvatar, setUserAvatar] = useState<string | null>(null); // State for avatar URL
-  const db = getFirestore(); // Get Firestore instance
+  const [userAvatar, setUserAvatar] = useState<string | null>(null);
+  const db = getFirestore();
 
   useEffect(() => {
     const fetchUserAvatar = async () => {
-      const user = auth.currentUser; // Get the currently signed-in user
+      const user = auth.currentUser; 
       if (user) {
         try {
-          // Fetch user information from the 'user-info' collection instead of 'users'
           const userDoc = await getDoc(doc(db, 'user-info', user.uid)); // Adjusted to use 'user-info'
           if (userDoc.exists()) {
             const userData = userDoc.data();
