@@ -1,39 +1,59 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Alert } from 'react-native';
-import DocumentScanner from 'react-native-document-scanner-plugin';
+import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 import RNFS from 'react-native-fs';
-import Pdf from 'react-native-pdf';
+import { PDFDocument, rgb } from 'pdf-lib';
 
 export default function ScanningScreen() {
-  const [scannedImages, setScannedImages] = useState<string[]>([]);
-  const [pdfPath, setPdfPath] = useState<string | null>(null);
+  const [scannedImages, setScannedImages] = useState([]);
+  const [pdfPath, setPdfPath] = useState(null);
 
-  const handleScan = async () => {
+  const handleCaptureImage = async (source) => {
     try {
-      const { scannedImages: newScannedImages } = await DocumentScanner.scanDocument({
-        letUserAdjustCrop: true,
-        maxNumDocuments: 10,
-      });
-      setScannedImages((prevImages) => [...prevImages, ...newScannedImages]);
+      const options = { mediaType: 'photo', quality: 0.8 };
+      const result = source === 'camera' 
+        ? await launchCamera(options)
+        : await launchImageLibrary(options);
+
+      if (result.assets && result.assets.length > 0) {
+        setScannedImages((prevImages) => [
+          ...prevImages,
+          result.assets[0].uri,
+        ]);
+      }
     } catch (error) {
-      console.error('Scanning failed:', error);
-      Alert.alert('Error', 'Scanning failed.');
+      console.error('Image capture failed:', error);
+      Alert.alert('Error', 'Image capture failed.');
     }
   };
 
   const handleSavePDF = async () => {
     if (scannedImages.length === 0) {
-      Alert.alert('No scans', 'Please scan documents first.');
+      Alert.alert('No images', 'Please capture or select images first.');
       return;
     }
 
     try {
-      const pdfFilePath = `${RNFS.DocumentDirectoryPath}/scannedDocument.pdf`;
+      const pdfDoc = await PDFDocument.create();
 
-      // Convert images to a PDF
-      await RNFS.writeFile(pdfFilePath, scannedImages.join('\n'), 'base64');
+      for (const uri of scannedImages) {
+        const jpgImageBytes = await RNFS.readFile(uri, 'base64');
+        const jpgImage = await pdfDoc.embedJpg(`data:image/jpeg;base64,${jpgImageBytes}`);
+        const page = pdfDoc.addPage([jpgImage.width, jpgImage.height]);
+        page.drawImage(jpgImage, {
+          x: 0,
+          y: 0,
+          width: jpgImage.width,
+          height: jpgImage.height,
+        });
+      }
+
+      const pdfBytes = await pdfDoc.save();
+      const pdfFilePath = `${RNFS.DocumentDirectoryPath}/scannedDocument.pdf`;
+      await RNFS.writeFile(pdfFilePath, pdfBytes, 'base64');
       setPdfPath(pdfFilePath);
-      Alert.alert('Success', 'Scanned pages saved as PDF!');
+
+      Alert.alert('Success', 'Images saved as PDF!');
     } catch (error) {
       console.error('Error saving PDF:', error);
       Alert.alert('Error', 'Could not save PDF.');
@@ -42,10 +62,18 @@ export default function ScanningScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.instructions}>Start scanning your documents</Text>
+      <Text style={styles.instructions}>Capture or select images to create a PDF</Text>
 
-      <TouchableOpacity style={styles.scanButton} onPress={handleScan}>
-        <Text style={styles.scanButtonText}>Start Scanning</Text>
+      <TouchableOpacity
+        style={styles.button}
+        onPress={() => handleCaptureImage('camera')}>
+        <Text style={styles.buttonText}>Capture Image</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={styles.button}
+        onPress={() => handleCaptureImage('library')}>
+        <Text style={styles.buttonText}>Select from Gallery</Text>
       </TouchableOpacity>
 
       <ScrollView horizontal style={styles.previewContainer}>
@@ -59,16 +87,7 @@ export default function ScanningScreen() {
       </TouchableOpacity>
 
       {pdfPath && (
-        <Pdf
-          source={{ uri: pdfPath }}
-          style={styles.pdfPreview}
-          onLoadComplete={(numberOfPages) => {
-            console.log(`PDF loaded with ${numberOfPages} pages.`);
-          }}
-          onError={(error) => {
-            console.log(error);
-          }}
-        />
+        <Text style={styles.pdfInfo}>PDF saved at: {pdfPath}</Text>
       )}
     </View>
   );
@@ -85,13 +104,13 @@ const styles = StyleSheet.create({
     fontSize: 18,
     marginBottom: 20,
   },
-  scanButton: {
+  button: {
     padding: 12,
     borderRadius: 8,
     backgroundColor: '#28a745',
     marginVertical: 10,
   },
-  scanButtonText: {
+  buttonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
@@ -117,9 +136,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
-  pdfPreview: {
-    width: '100%',
-    height: 400,
+  pdfInfo: {
     marginTop: 20,
+    fontSize: 16,
+    color: 'green',
   },
 });
