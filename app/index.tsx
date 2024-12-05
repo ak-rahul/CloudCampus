@@ -6,6 +6,7 @@ export default function Index() {
   const [scale] = useState(new Animated.Value(1)); 
   const router = useRouter();
 
+  // Handle button press animation
   const handlePressIn = () => {
     Animated.spring(scale, {
       toValue: 0.95,
@@ -22,9 +23,10 @@ export default function Index() {
     }).start();
   };
 
+  // Navigate to SignIn screen
   const handleSignIn = () => {
-    console.log('Sign-In Button Pressed');
-    router.replace("/auth");
+    console.log('Navigating to SignIn screen');
+    router.push("/(auth)/SignIn"); // Directly navigate to the SignIn screen
   };
 
   return (
@@ -60,7 +62,7 @@ const styles = StyleSheet.create({
     width: 350,
     height: 350,
     marginBottom: 20,
-    marginTop : -40,
+    marginTop: -40,
   },
   signInButton: {
     borderRadius: 30,

@@ -3,6 +3,7 @@
     "name": "CloudCampus",
     "slug": "CloudCampus",
     "version": "1.0.0",
+    "entryPoint": "expo-router/entry",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "myapp",
