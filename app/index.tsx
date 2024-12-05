@@ -24,7 +24,7 @@ export default function Index() {
 
   const handleSignIn = () => {
     console.log('Sign-In Button Pressed');
-    router.push('/auth');
+    router.replace("/auth");
   };
 
   return (

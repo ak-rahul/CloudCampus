@@ -1,7 +1,7 @@
 import React from 'react';
 import { createDrawerNavigator } from '@react-navigation/drawer';
 import { createStackNavigator } from '@react-navigation/stack';
-import ScannerScreen from '../screens/ScannerScreen'
+import ScannerScreen from '../(screens)/ScannerScreen'
 import ClassroomScreen from './ClassroomScreen';
 import AvatarOptions from './AvatarOptions';
 import CustomDrawerContent from '../../components/CustomDrawerContent';
