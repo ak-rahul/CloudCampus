@@ -1,4 +1,4 @@
-package com.anonymous.CloudCampus
+package com.anonymous.temppro
 
 import android.app.Application
 import android.content.res.Configuration

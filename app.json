@@ -1,9 +1,8 @@
 {
   "expo": {
-    "name": "CloudCampus",
-    "slug": "CloudCampus",
+    "name": "temp-pro",
+    "slug": "temp-pro",
     "version": "1.0.0",
-    "entryPoint": "expo-router/entry",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "myapp",
@@ -17,7 +16,7 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.anonymous.CloudCampus"
+      "package": "com.anonymous.temppro"
     },
     "web": {
       "bundler": "metro",

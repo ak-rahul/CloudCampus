@@ -86,9 +86,9 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace 'com.anonymous.CloudCampus'
+    namespace 'com.anonymous.temppro'
     defaultConfig {
-        applicationId 'com.anonymous.CloudCampus'
+        applicationId 'com.anonymous.temppro'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

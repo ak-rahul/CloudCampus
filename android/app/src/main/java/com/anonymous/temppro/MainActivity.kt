@@ -1,4 +1,4 @@
-package com.anonymous.CloudCampus
+package com.anonymous.temppro
 import expo.modules.splashscreen.SplashScreenManager
 
 import android.os.Build

@@ -6,14 +6,12 @@
       "@/*": [
         "./*"
       ]
-    },
-    "jsx": "react",
-    "types": ["react-native"]
+    }
   },
   "include": [
     "**/*.ts",
     "**/*.tsx",
     ".expo/types/**/*.ts",
     "expo-env.d.ts"
-, "app/(auth)/SelectAvatar.jsx", "app/(auth)/_layout.jsx", "app/_layout.jsx", "app/index.jsx"  ]
+  ]
 }

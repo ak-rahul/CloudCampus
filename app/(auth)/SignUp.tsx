@@ -57,7 +57,7 @@ export default function SignUp() {
       // Show success message and navigate to avatar selection
       Alert.alert('Sign-Up Successful', 'You can now select your avatar.');
       router.push({
-        pathname: "/auth/SelectAvatar",
+        pathname: "/(auth)/SelectAvatar",
         params: { uid: user.uid },
       });
     } catch (error) {

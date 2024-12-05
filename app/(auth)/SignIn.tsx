@@ -32,7 +32,7 @@ export default function SignIn() {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       console.log('User signed in: ', userCredential.user);
-      router.push("/screens");
+      router.push("/(screens)/ClassroomScreen");
     } catch (error) {
       console.error('Error signing in: ', error);
       Alert.alert('Sign-In Error', error.message);
@@ -40,7 +40,7 @@ export default function SignIn() {
   };
 
   const handleSignUpNavigation = () => {
-    router.push("/auth/SignUp"); // Redirects to the Sign Up screen
+    router.push("/(auth)/SignUp"); // Redirects to the Sign Up screen
   };
 
   return (
