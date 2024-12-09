@@ -9,6 +9,7 @@ export default function SelectAvatar() {
   const [avatars, setAvatars] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedAvatar, setSelectedAvatar] = useState(null);
+  const [isButtonDisabled, setIsButtonDisabled] = useState(false); // Prevent multiple clicks
   const router = useRouter();
   const firestore = getFirestore();
 
@@ -56,24 +57,24 @@ export default function SelectAvatar() {
 
   const handleGetStarted = async () => {
     try {
+      setIsButtonDisabled(true); // Disable the button
       const user = auth.currentUser;
+      
       if (user && selectedAvatar) {
-        // Reference to the user's document in the "user-info" collection using their UID
         const avatarDocRef = doc(firestore, 'user-info', user.uid);
-
-        // Update the "avatar" field in the existing "user-info" document
-        await setDoc(avatarDocRef, {
-          avatar: selectedAvatar,
-        }, { merge: true }); // Merge ensures we update only the avatar field without overwriting other fields
-
+        
+        await setDoc(avatarDocRef, { avatar: selectedAvatar }, { merge: true });
         Alert.alert('Success', 'Avatar selected successfully!');
-        router.push('/auth'); // Navigate to the next screen
+        router.push("/(screens)/ClassroomScreen");
       } else {
+        // If the user is not authenticated, redirect to the sign-up screen
         Alert.alert('Error', 'No user is signed in or no avatar is selected.');
       }
     } catch (error) {
       console.error('Error selecting avatar: ', error);
       Alert.alert('Error', 'Failed to save avatar.');
+    } finally {
+      setIsButtonDisabled(false); // Re-enable the button
     }
   };
 
@@ -89,7 +90,9 @@ export default function SelectAvatar() {
         duration: 150,
         useNativeDriver: true,
       }),
-    ]).start(handleGetStarted);
+    ]).start(() => {
+      if (!isButtonDisabled) handleGetStarted();
+    });
   };
 
   if (loading) {
@@ -121,8 +124,16 @@ export default function SelectAvatar() {
       {selectedAvatar && (
         <View style={styles.buttonContainer}>
           <Animated.View style={{ transform: [{ scale: buttonScale }] }}>
-            <TouchableOpacity onPress={animateButton} style={styles.getStartedButton}>
-              <Text style={styles.buttonText}>Get Started</Text>
+            <TouchableOpacity
+              onPress={animateButton}
+              style={[styles.getStartedButton, isButtonDisabled && { backgroundColor: '#ccc' }]} // Update style when disabled
+              disabled={isButtonDisabled} // Disable the button while processing
+            >
+              {isButtonDisabled ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text style={styles.buttonText}>Get Started</Text>
+              )}
             </TouchableOpacity>
           </Animated.View>
         </View>
