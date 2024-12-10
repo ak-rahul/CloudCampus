@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "temp-pro",
-    "slug": "temp-pro",
+    "name": "CloudCampus",
+    "slug": "CloudCampus",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",

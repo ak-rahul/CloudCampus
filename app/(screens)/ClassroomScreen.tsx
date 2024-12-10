@@ -1,27 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Alert } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useRouter } from "expo-router";
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import ClassroomBox from '../../components/ClassroomBox';
 import OptionsModal from '../../components/OptionsModal';
-import { getFirestore, doc, getDoc } from 'firebase/firestore';
+import { getFirestore, doc, getDoc, collection, getDocs } from 'firebase/firestore';
 import { auth } from '../../firebase/firebaseConfig';
 
 export default function ClassroomScreen() {
-  const navigation = useNavigation();
+  const router = useRouter();
   const [modalVisible, setModalVisible] = useState(false);
   const [userAvatar, setUserAvatar] = useState<string | null>(null);
+  const [classrooms, setClassrooms] = useState<any[]>([]);
   const db = getFirestore();
 
   useEffect(() => {
     const fetchUserAvatar = async () => {
-      const user = auth.currentUser; 
+      const user = auth.currentUser;
       if (user) {
         try {
-          const userDoc = await getDoc(doc(db, 'user-info', user.uid)); // Adjusted to use 'user-info'
+          const userDoc = await getDoc(doc(db, 'user-info', user.uid));
           if (userDoc.exists()) {
             const userData = userDoc.data();
-            setUserAvatar(userData.avatar); // Set the user's avatar URL from 'user-info' collection
+            setUserAvatar(userData.avatar);
           } else {
             console.log('No such document!');
           }
@@ -32,57 +33,69 @@ export default function ClassroomScreen() {
       }
     };
 
-    fetchUserAvatar(); // Fetch the avatar when the component is mounted
+    const fetchClassrooms = async () => {
+      try {
+        const classroomsRef = collection(db, 'classrooms');
+        const classroomsSnapshot = await getDocs(classroomsRef);
+        const classroomsList = classroomsSnapshot.docs.map(doc => doc.data());
+        setClassrooms(classroomsList);
+      } catch (error) {
+        console.error('Error fetching classrooms: ', error);
+        Alert.alert('Error', 'Could not fetch classrooms.');
+      }
+    };
+
+    fetchUserAvatar();
+    fetchClassrooms();
   }, []);
 
   const handleCreateClass = () => {
     setModalVisible(false);
-    // Handle class creation
+    router.push("/(classroom)/CreateClassroom");// Navigate to CreateClassroomScreen
   };
 
   const handleJoinClass = () => {
     setModalVisible(false);
-    // Handle joining a class
+    // Navigate or show functionality to join a class
   };
 
   return (
     <View style={styles.container}>
       <View style={styles.headerBox}>
         <Text style={styles.headingText}>Classrooms</Text>
-        <TouchableOpacity 
-          style={styles.avatarTouchableArea} 
-          onPress={() => navigation.navigate('AvatarOptions')}
+        <TouchableOpacity
+          style={styles.avatarTouchableArea}
+          onPress={() => router.push('/(screens)/AvatarOptions')}
         >
           <Image
             style={styles.avatar}
-            source={userAvatar ? { uri: userAvatar } : require('../../assets/avatar.png')} // Use the avatar from Firestore or default avatar
+            source={userAvatar ? { uri: userAvatar } : require('../../assets/avatar.png')}
           />
         </TouchableOpacity>
       </View>
       <View style={styles.boxContainer}>
-        <ScrollView scrollEnabled>
-          {/* Add ClassroomBox components here */}
-          {[...Array(10)].map((_, index) => (
-            <ClassroomBox 
+        <ScrollView>
+          {classrooms.map((classroom, index) => (
+            <ClassroomBox
               key={index}
-              heading="Classroom"
-              subtitle="Welcome to your classroom"
+              heading={classroom.name}
+              subtitle={classroom.description}
             />
           ))}
         </ScrollView>
       </View>
       <TouchableOpacity
         style={styles.floatingButton}
-        onPress={() => setModalVisible(true)} // Show the modal when the button is pressed
+        onPress={() => setModalVisible(true)}
       >
         <Icon name="add" size={24} color="#fff" />
       </TouchableOpacity>
 
       <OptionsModal
-        visible={modalVisible} // Pass the modal visibility state
-        onClose={() => setModalVisible(false)} // Close the modal when requested
-        onCreateClass={handleCreateClass} // Handle creating a class
-        onJoinClass={handleJoinClass} // Handle joining a class
+        visible={modalVisible}
+        onClose={() => setModalVisible(false)}
+        onCreateClass={handleCreateClass} // Navigate to CreateClassroomScreen
+        onJoinClass={handleJoinClass}
       />
     </View>
   );
@@ -114,12 +127,12 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   avatarTouchableArea: {
-    width: 60, // Increased width for touchable area
-    height: 60, // Increased height for touchable area
-    justifyContent: 'center', 
+    width: 60,
+    height: 60,
+    justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 30, // Match the avatar border radius
-    backgroundColor: 'transparent', // Ensure the background is transparent
+    borderRadius: 30,
+    backgroundColor: 'transparent',
   },
   avatar: {
     width: 47,
