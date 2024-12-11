@@ -13,7 +13,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "foregroundImage": "./assets/icon-android.png",
         "backgroundColor": "#ffffff"
       },
       "package": "com.anonymous.temppro"
