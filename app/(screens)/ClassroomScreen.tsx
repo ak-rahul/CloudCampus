@@ -37,7 +37,10 @@ export default function ClassroomScreen() {
       try {
         const classroomsRef = collection(db, 'classrooms');
         const classroomsSnapshot = await getDocs(classroomsRef);
-        const classroomsList = classroomsSnapshot.docs.map(doc => doc.data());
+        const classroomsList = classroomsSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
         setClassrooms(classroomsList);
       } catch (error) {
         console.error('Error fetching classrooms: ', error);
@@ -49,9 +52,15 @@ export default function ClassroomScreen() {
     fetchClassrooms();
   }, []);
 
-  const handleCreateClass = () => {
+  const handleCreateClass = async () => {
     setModalVisible(false);
-    router.push("/(classroom)/CreateClassroom");// Navigate to CreateClassroomScreen
+    router.push("/(classroom)/CreateClassroom");
+
+    // Optionally, fetch classrooms again after classroom creation
+    const classroomsRef = collection(db, 'classrooms');
+    const classroomsSnapshot = await getDocs(classroomsRef);
+    const classroomsList = classroomsSnapshot.docs.map(doc => doc.data());
+    setClassrooms(classroomsList); // Update the classrooms list
   };
 
   const handleJoinClass = () => {
@@ -79,7 +88,7 @@ export default function ClassroomScreen() {
             <ClassroomBox
               key={index}
               heading={classroom.name}
-              subtitle={classroom.description}
+              subtitle={`Created by: ${classroom.createdBy}`} // Display creator's name
             />
           ))}
         </ScrollView>
