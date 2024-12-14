@@ -1,18 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Animated, ActivityIndicator } from 'react-native';
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { auth, firestore } from '../../firebase/firebaseConfig'; // Ensure firestore is imported
 import { doc, setDoc } from 'firebase/firestore';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from "expo-router";
-import RadioGroup from 'react-native-radio-buttons-group'; // Import the radio buttons group library
 
 export default function SignUp() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [role, setRole] = useState('student'); // Default to 'student'
   const [isLoading, setIsLoading] = useState(false); // Prevent multiple clicks
   const router = useRouter();
 
@@ -51,14 +49,13 @@ export default function SignUp() {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
-      // Save user data in Firestore under "user-info" with role and empty "avatar" field
+      // Save user data in Firestore under "user-info" with an empty "avatar" field
       await setDoc(doc(firestore, "user-info", user.uid), {
         name: name,
         email: email,
-        role: role, // Save the selected role
         avatar: ""
       });
-
+      
       router.push({
         pathname: "/(auth)/SelectAvatar",
         params: { uid: user.uid },
@@ -70,22 +67,6 @@ export default function SignUp() {
       setIsLoading(false); // Re-enable the button after the process
     }
   };
-
-  // Radio button data for the 'role' selection
-  const radioButtonsData = [
-    {
-      label: 'Student',
-      value: 'student',
-      selected: role === 'student',
-      onPress: () => setRole('student'),
-    },
-    {
-      label: 'Teacher',
-      value: 'teacher',
-      selected: role === 'teacher',
-      onPress: () => setRole('teacher'),
-    },
-  ];
 
   return (
     <LinearGradient
@@ -131,16 +112,6 @@ export default function SignUp() {
           placeholderTextColor="#aaa"
           editable={!isLoading} // Disable input while loading
         />
-
-        {/* Role Selection using Radio Buttons */}
-        <Text style={styles.radioLabel}>Select Role</Text>
-        <RadioGroup
-          radioButtons={radioButtonsData}
-          onPress={(selectedOption) => setRole(selectedOption.value)}
-          flexDirection="row"
-          containerStyle={styles.radioContainer}
-        />
-
         <Animated.View style={{ transform: [{ scale: scaleValue }] }}>
           <TouchableOpacity
             onPress={isLoading ? null : handleSignUp} // Prevent multiple clicks
@@ -186,14 +157,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     color: '#333',
     fontSize: 16,
-  },
-  radioLabel: {
-    fontSize: 16,
-    color: '#333',
-    marginBottom: 10,
-  },
-  radioContainer: {
-    marginBottom: 20,
   },
   button: {
     backgroundColor: '#ff5a5f',

@@ -8,7 +8,6 @@ import {
   Alert,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import Icon from 'react-native-vector-icons/MaterialIcons';
 import { getFirestore, collection, query, where, getDocs } from 'firebase/firestore';
 
 export default function JoinClassroom() {
@@ -41,9 +40,6 @@ export default function JoinClassroom() {
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity style={styles.closeButton} onPress={() => navigation.goBack()}>
-        <Icon name="close" size={30} color="#000" />
-      </TouchableOpacity>
       <Text style={styles.title}>Join a Classroom</Text>
       <TextInput
         style={styles.input}
@@ -64,12 +60,6 @@ const styles = StyleSheet.create({
     padding: 20,
     backgroundColor: '#fff',
     justifyContent: 'center',
-  },
-  closeButton: {
-    position: 'absolute',
-    top: 20,
-    right: 20,
-    zIndex: 10,
   },
   title: {
     fontSize: 24,

@@ -51,12 +51,12 @@ export default function ClassroomScreen() {
 
   const handleCreateClass = () => {
     setModalVisible(false);
-    router.push("/(classroom)/CreateClassroom"); // Navigate to CreateClassroomScreen
+    router.push("/(classroom)/CreateClassroom");// Navigate to CreateClassroomScreen
   };
 
   const handleJoinClass = () => {
     setModalVisible(false);
-    router.push("/(classroom)/JoinClassroom"); // Navigate to JoinClassroomScreen
+    // Navigate or show functionality to join a class
   };
 
   return (
@@ -75,42 +75,13 @@ export default function ClassroomScreen() {
       </View>
       <View style={styles.boxContainer}>
         <ScrollView>
+          {classrooms.map((classroom, index) => (
             <ClassroomBox
-              heading={"Classroom"}
-              subtitle={"Welcome to the classroom..."}
+              key={index}
+              heading={classroom.name}
+              subtitle={classroom.description}
             />
-            <ClassroomBox
-              heading={"Classroom"}
-              subtitle={"Welcome to the classroom..."}
-            />
-            <ClassroomBox
-              heading={"Classroom"}
-              subtitle={"Welcome to the classroom..."}
-            />
-            <ClassroomBox
-              heading={"Classroom"}
-              subtitle={"Welcome to the classroom..."}
-            />
-            <ClassroomBox
-              heading={"Classroom"}
-              subtitle={"Welcome to the classroom..."}
-            />
-            <ClassroomBox
-              heading={"Classroom"}
-              subtitle={"Welcome to the classroom..."}
-            />
-            <ClassroomBox
-              heading={"Classroom"}
-              subtitle={"Welcome to the classroom..."}
-            />
-            <ClassroomBox
-              heading={"Classroom"}
-              subtitle={"Welcome to the classroom..."}
-            />
-            <ClassroomBox
-              heading={"Classroom"}
-              subtitle={"Welcome to the classroom..."}
-            />     
+          ))}
         </ScrollView>
       </View>
       <TouchableOpacity
@@ -124,7 +95,7 @@ export default function ClassroomScreen() {
         visible={modalVisible}
         onClose={() => setModalVisible(false)}
         onCreateClass={handleCreateClass} // Navigate to CreateClassroomScreen
-        onJoinClass={handleJoinClass} // Navigate to JoinClassroomScreen
+        onJoinClass={handleJoinClass}
       />
     </View>
   );

@@ -6,7 +6,7 @@ interface OptionsModalProps {
   visible: boolean;
   onClose: () => void;
   onCreateClass: () => void;
-  onJoinClass: () => void;  // The onJoinClass function will navigate to JoinClassroom
+  onJoinClass: () => void;
 }
 
 const OptionsModal: React.FC<OptionsModalProps> = ({ visible, onClose, onCreateClass, onJoinClass }) => {
