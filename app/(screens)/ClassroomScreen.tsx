@@ -68,19 +68,32 @@ export default function ClassroomScreen() {
     // Navigate or show functionality to join a class
   };
 
+  const handleNotifications = () => {
+    router.push('/(screens)/NotificationScreen');
+    // Or, display a modal with notifications
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.headerBox}>
         <Text style={styles.headingText}>Classrooms</Text>
-        <TouchableOpacity
-          style={styles.avatarTouchableArea}
-          onPress={() => router.push('/(screens)/AvatarOptions')}
-        >
-          <Image
-            style={styles.avatar}
-            source={userAvatar ? { uri: userAvatar } : require('../../assets/avatar.png')}
-          />
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          <TouchableOpacity
+            style={styles.notificationsButton}
+            onPress={handleNotifications}
+          >
+            <Icon name="notifications" size={24} color="#000" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.avatarTouchableArea}
+            onPress={() => router.push('/(screens)/AvatarOptions')}
+          >
+            <Image
+              style={styles.avatar}
+              source={userAvatar ? { uri: userAvatar } : require('../../assets/avatar.png')}
+            />
+          </TouchableOpacity>
+        </View>
       </View>
       <View style={styles.boxContainer}>
         <ScrollView>
@@ -134,6 +147,13 @@ const styles = StyleSheet.create({
   headingText: {
     fontSize: 24,
     fontWeight: 'bold',
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  notificationsButton: {
+    marginRight: 10,
   },
   avatarTouchableArea: {
     width: 60,

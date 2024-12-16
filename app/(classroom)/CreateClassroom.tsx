@@ -96,7 +96,8 @@ export default function CreateClassroom() {
       });
 
       Alert.alert('Success', `Classroom created successfully! Code: ${classroomCode}`);
-      
+
+
       // Navigate to the ClassroomScreen (or any other screen you want after creating a classroom)
       router.push('/(screens)/ClassroomScreen');
     } catch (error) {
@@ -156,8 +157,8 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 20,
     backgroundColor: '#fff',
-    justifyContent: 'flex-start', // Align the content to the top of the screen
-    paddingTop: 60, // Added padding from top for the title and form
+    justifyContent: 'flex-start', // Align content to the top of the screen
+    paddingTop: 60, // Added padding for the title and form
   },
   closeButton: {
     position: 'absolute',
@@ -180,8 +181,8 @@ const styles = StyleSheet.create({
     borderRadius: 5,
   },
   emailContainer: {
-    paddingBottom: 20,
-    flexGrow: 1, // Allows ScrollView to grow and fill available space
+    flexGrow: 0, // Prevents the ScrollView from pushing the button further down
+    paddingBottom: 10,
   },
   emailFieldContainer: {
     flexDirection: 'row',
@@ -200,7 +201,9 @@ const styles = StyleSheet.create({
     padding: 15,
     borderRadius: 5,
     alignItems: 'center',
-    marginTop: 20,
+    marginVertical: 20, // Space above and below the button
+    alignSelf: 'center', // Center button horizontally
+    position: 'relative', // Ensure it stays within the form
   },
   createButtonText: {
     color: '#fff',
