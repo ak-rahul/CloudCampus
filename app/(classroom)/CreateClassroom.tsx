@@ -12,7 +12,7 @@ import { useNavigation } from '@react-navigation/native';
 import { getFirestore, collection, addDoc, getDoc, doc } from 'firebase/firestore';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { router } from 'expo-router';
-import { auth } from '../../firebase/firebaseConfig'; // Firebase authentication
+import { auth } from '../../firebase/firebaseConfig';
 
 // Function to generate a random classroom code
 const generateClassroomCode = () => {
@@ -24,24 +24,25 @@ const generateClassroomCode = () => {
   return code;
 };
 
+// Utility function to validate email
+const isValidEmail = (email: string) => /\S+@\S+\.\S+/.test(email);
+
 export default function CreateClassroom() {
   const [className, setClassName] = useState('');
   const [emailFields, setEmailFields] = useState<string[]>(['']);
-  const [creatorName, setCreatorName] = useState<string>(''); // State to store the creator's name
+  const [creatorName, setCreatorName] = useState<string>(''); // Creator's name
   const navigation = useNavigation();
   const db = getFirestore();
 
-  // Fetch the creator's name from Firestore
+  // Fetch creator's name from Firestore
   const getCreatorName = async () => {
     const user = auth.currentUser;
     if (user && user.email) {
       try {
-        const userDoc = await getDoc(doc(db, 'user-info', user.uid)); // Use email to fetch user data
+        const userDoc = await getDoc(doc(db, 'user-info', user.uid));
         if (userDoc.exists()) {
           const userData = userDoc.data();
-          setCreatorName(userData?.name || 'Unknown'); // Set the name or fallback to 'Unknown'
-        } else {
-          console.log('No user found with that email');
+          setCreatorName(userData?.name || 'Unknown');
         }
       } catch (error) {
         console.error('Error fetching user data:', error);
@@ -51,7 +52,7 @@ export default function CreateClassroom() {
   };
 
   useEffect(() => {
-    getCreatorName(); // Fetch creator name when the component mounts
+    getCreatorName();
   }, []);
 
   const handleEmailChange = (text: string, index: number) => {
@@ -59,7 +60,6 @@ export default function CreateClassroom() {
     updatedEmails[index] = text;
     setEmailFields(updatedEmails);
 
-    // Check if the last field is filled, and if so, add a new email field
     if (index === emailFields.length - 1 && text.trim() !== '') {
       setEmailFields([...updatedEmails, '']);
     }
@@ -73,32 +73,43 @@ export default function CreateClassroom() {
   };
 
   const handleCreateClass = async () => {
-    // Filter out any empty email fields
     const validEmails = emailFields.filter(email => email.trim() !== '');
-
-    // If className is empty or no valid email fields exist, show an error
     if (!className || validEmails.length === 0 || !creatorName) {
       Alert.alert('Error', 'Please fill in all fields.');
       return;
     }
 
+    // Check for invalid emails
+    if (validEmails.some(email => !isValidEmail(email))) {
+      Alert.alert('Error', 'One or more email addresses are invalid.');
+      return;
+    }
+
     try {
-      // Generate a unique classroom code
       const classroomCode = generateClassroomCode();
 
-      // Create the classroom in Firestore with the code and creator's name
+      // Create classroom in Firestore
       await addDoc(collection(db, 'classrooms'), {
         name: className,
         emails: validEmails,
-        code: classroomCode, // Store the generated code
-        createdBy: creatorName, // Store the creator's name
+        code: classroomCode,
+        createdBy: creatorName,
         createdAt: new Date(),
       });
 
+      // Send notifications to invited users
+      const notificationsRef = collection(db, 'notifications');
+      validEmails.forEach(async (email) => {
+        await addDoc(notificationsRef, {
+          email,
+          message: `You are invited to join the classroom "${className}". Use code: ${classroomCode}`,
+          timestamp: new Date(),
+          classroomName: className,
+          classroomCode,
+        });
+      });
+
       Alert.alert('Success', `Classroom created successfully! Code: ${classroomCode}`);
-
-
-      // Navigate to the ClassroomScreen (or any other screen you want after creating a classroom)
       router.push('/(screens)/ClassroomScreen');
     } catch (error) {
       console.error('Error creating classroom: ', error);
@@ -108,7 +119,6 @@ export default function CreateClassroom() {
 
   return (
     <View style={styles.container}>
-      {/* Close Icon */}
       <TouchableOpacity
         style={styles.closeButton}
         onPress={() => navigation.goBack()}
@@ -132,7 +142,6 @@ export default function CreateClassroom() {
               value={email}
               onChangeText={text => handleEmailChange(text, index)}
             />
-            {/* Remove button appears only when there's more than one email field */}
             {emailFields.length > 1 && (
               <TouchableOpacity
                 style={styles.removeButton}
@@ -157,8 +166,8 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 20,
     backgroundColor: '#fff',
-    justifyContent: 'flex-start', // Align content to the top of the screen
-    paddingTop: 60, // Added padding for the title and form
+    justifyContent: 'flex-start',
+    paddingTop: 60,
   },
   closeButton: {
     position: 'absolute',
@@ -170,10 +179,10 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 20,
-    alignSelf: 'center', // Center the title horizontally
+    alignSelf: 'center',
   },
   input: {
-    width: '85%', // Slightly reduced width to leave space for the remove button
+    width: '85%',
     padding: 10,
     marginVertical: 10,
     borderColor: '#ddd',
@@ -181,7 +190,7 @@ const styles = StyleSheet.create({
     borderRadius: 5,
   },
   emailContainer: {
-    flexGrow: 0, // Prevents the ScrollView from pushing the button further down
+    flexGrow: 0,
     paddingBottom: 10,
   },
   emailFieldContainer: {
@@ -201,9 +210,8 @@ const styles = StyleSheet.create({
     padding: 15,
     borderRadius: 5,
     alignItems: 'center',
-    marginVertical: 20, // Space above and below the button
-    alignSelf: 'center', // Center button horizontally
-    position: 'relative', // Ensure it stays within the form
+    marginVertical: 20,
+    alignSelf: 'center',
   },
   createButtonText: {
     color: '#fff',

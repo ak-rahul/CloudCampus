@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert } from 'react-native';
-import { useRouter } from "expo-router";
+import { useRouter } from 'expo-router';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import { getFirestore, collection, getDocs, query, orderBy } from 'firebase/firestore';
+import { getFirestore, collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
+import { auth } from '../../firebase/firebaseConfig';
 
 export default function NotificationScreen() {
   const [notifications, setNotifications] = useState<any[]>([]);
@@ -10,34 +11,49 @@ export default function NotificationScreen() {
   const db = getFirestore();
 
   useEffect(() => {
-    const fetchNotifications = async () => {
-      try {
-        const notificationsRef = collection(db, 'notifications');
-        const notificationsQuery = query(notificationsRef, orderBy('timestamp', 'desc'));
-        const notificationsSnapshot = await getDocs(notificationsQuery);
-        const notificationsList = notificationsSnapshot.docs.map(doc => ({
+    const user = auth.currentUser;
+    if (!user || !user.email) return;
+    const notificationsRef = collection(db, 'notifications');
+    const notificationsQuery = query(
+      notificationsRef,
+      where('email', '==', user.email),
+      orderBy('timestamp', 'desc')
+    );
+
+    // Real-time listener
+    const unsubscribe = onSnapshot(
+      notificationsQuery,
+      (snapshot) => {
+        const notificationsList = snapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data(),
         }));
         setNotifications(notificationsList);
-      } catch (error) {
+      },
+      (error) => {
         console.error('Error fetching notifications: ', error);
         Alert.alert('Error', 'Could not fetch notifications.');
       }
-    };
+    );
 
-    fetchNotifications();
+    return () => unsubscribe();
   }, []);
 
   const renderItem = ({ item }: { item: any }) => (
-    <View style={styles.notificationBox}>
-      <Text style={styles.notificationTitle}>{item.title}</Text>
-      <Text style={styles.notificationMessage}>{item.message}</Text>
+    <TouchableOpacity
+      style={styles.notificationBox}
+      onPress={() => handleNotificationClick(item)}
+    >
+      <Text style={styles.notificationTitle}>{item.message}</Text>
       <Text style={styles.notificationTimestamp}>
         {new Date(item.timestamp?.toDate()).toLocaleString()}
       </Text>
-    </View>
+    </TouchableOpacity>
   );
+
+  const handleNotificationClick = (item: any) => {
+    router.push('/NotificationDetails', { notification: item });
+  };
 
   return (
     <View style={styles.container}>
@@ -52,6 +68,9 @@ export default function NotificationScreen() {
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
         contentContainerStyle={styles.listContent}
+        ListEmptyComponent={
+          <Text style={styles.emptyText}>No notifications available.</Text>
+        }
       />
     </View>
   );
@@ -60,54 +79,48 @@ export default function NotificationScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
-  },
-  headerBox: {
-    backgroundColor: '#f0f0f0',
-    paddingTop: 40,
-    paddingLeft: 10,
-    paddingRight: 20,
-    paddingBottom: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#ddd',
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  headingText: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginLeft: 10, // Spacing between the icon and text
-  },
-  backButton: {
-    padding: 10,
-  },
-  listContent: {
-    padding: 20,
+    backgroundColor: '#F9F9F9',
   },
   notificationBox: {
+    backgroundColor: '#fff',
     padding: 15,
-    marginBottom: 10,
-    backgroundColor: '#f9f9f9',
-    borderRadius: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    marginVertical: 5,
+    marginHorizontal: 10,
+    borderRadius: 5,
+    borderWidth: 1,
+    borderColor: '#DDD',
   },
   notificationTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
     marginBottom: 5,
   },
-  notificationMessage: {
-    fontSize: 14,
-    color: '#555',
-    marginBottom: 10,
-  },
   notificationTimestamp: {
     fontSize: 12,
-    color: '#999',
-    textAlign: 'right',
+    color: '#555',
+  },
+  headerBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 15,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderColor: '#DDD',
+  },
+  backButton: {
+    marginRight: 10,
+  },
+  headingText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  listContent: {
+    paddingBottom: 20,
+  },
+  emptyText: {
+    textAlign: 'center',
+    marginVertical: 20,
+    fontSize: 16,
+    color: '#777',
   },
 });

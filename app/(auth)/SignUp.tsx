@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Animated, ActivityIndicator } from 'react-native';
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import { auth, firestore } from '../../firebase/firebaseConfig'; // Ensure firestore is imported
+import { auth, firestore } from '../../firebase/firebaseConfig';
 import { doc, setDoc } from 'firebase/firestore';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from "expo-router";
@@ -11,7 +11,8 @@ export default function SignUp() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false); // Prevent multiple clicks
+  const [role, setRole] = useState('student'); // Default role is 'student'
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
   const scaleValue = useRef(new Animated.Value(1)).current;
@@ -43,19 +44,19 @@ export default function SignUp() {
       return;
     }
 
-    setIsLoading(true); // Disable the button
+    setIsLoading(true);
     try {
-      // Sign up the user using Firebase Authentication
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
-      // Save user data in Firestore under "user-info" with an empty "avatar" field
+      // Save user data in Firestore with the selected role
       await setDoc(doc(firestore, "user-info", user.uid), {
         name: name,
         email: email,
-        avatar: ""
+        avatar: "",
+        role: role,
       });
-      
+
       router.push({
         pathname: "/(auth)/SelectAvatar",
         params: { uid: user.uid },
@@ -64,9 +65,24 @@ export default function SignUp() {
       console.error('Error signing up: ', error);
       Alert.alert('Sign-Up Error', error.message);
     } finally {
-      setIsLoading(false); // Re-enable the button after the process
+      setIsLoading(false);
     }
   };
+
+  const renderRadioButton = (value: string, label: string) => (
+    <TouchableOpacity
+      style={[
+        styles.radioButtonContainer,
+        role === value && styles.radioButtonSelected,
+      ]}
+      onPress={() => setRole(value)}
+      activeOpacity={0.8}
+    >
+      <Text style={[styles.radioText, role === value && styles.radioTextSelected]}>
+        {label}
+      </Text>
+    </TouchableOpacity>
+  );
 
   return (
     <LinearGradient
@@ -82,7 +98,7 @@ export default function SignUp() {
           onChangeText={setName}
           autoCapitalize="words"
           placeholderTextColor="#aaa"
-          editable={!isLoading} // Disable input while loading
+          editable={!isLoading}
         />
         <TextInput
           style={styles.input}
@@ -92,7 +108,7 @@ export default function SignUp() {
           keyboardType="email-address"
           autoCapitalize="none"
           placeholderTextColor="#aaa"
-          editable={!isLoading} // Disable input while loading
+          editable={!isLoading}
         />
         <TextInput
           style={styles.input}
@@ -101,7 +117,7 @@ export default function SignUp() {
           onChangeText={setPassword}
           secureTextEntry
           placeholderTextColor="#aaa"
-          editable={!isLoading} // Disable input while loading
+          editable={!isLoading}
         />
         <TextInput
           style={styles.input}
@@ -110,16 +126,24 @@ export default function SignUp() {
           onChangeText={setConfirmPassword}
           secureTextEntry
           placeholderTextColor="#aaa"
-          editable={!isLoading} // Disable input while loading
+          editable={!isLoading}
         />
+
+        {/* Interactive Role Selection */}
+        <Text style={styles.radioTitle}>Select Your Role</Text>
+        <View style={styles.radioGroup}>
+          {renderRadioButton('student', 'Student')}
+          {renderRadioButton('teacher', 'Teacher')}
+        </View>
+
         <Animated.View style={{ transform: [{ scale: scaleValue }] }}>
           <TouchableOpacity
-            onPress={isLoading ? null : handleSignUp} // Prevent multiple clicks
+            onPress={isLoading ? null : handleSignUp}
             onPressIn={handlePressIn}
             onPressOut={handlePressOut}
-            style={[styles.button, isLoading && { backgroundColor: '#ccc' }]} // Change button style when loading
+            style={[styles.button, isLoading && { backgroundColor: '#ccc' }]}
             activeOpacity={0.8}
-            disabled={isLoading} // Disable button while loading
+            disabled={isLoading}
           >
             {isLoading ? (
               <ActivityIndicator size="small" color="#fff" />
@@ -158,6 +182,40 @@ const styles = StyleSheet.create({
     color: '#333',
     fontSize: 16,
   },
+  radioTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 10,
+    color: '#333',
+    textAlign: 'center',
+  },
+  radioGroup: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  radioButtonContainer: {
+    flex: 1,
+    borderWidth: 2,
+    borderColor: '#ccc',
+    borderRadius: 25,
+    paddingVertical: 10,
+    marginHorizontal: 5,
+    alignItems: 'center',
+    backgroundColor: '#f0f0f0',
+  },
+  radioButtonSelected: {
+    borderColor: '#007BFF',
+    backgroundColor: '#e6f7ff',
+  },
+  radioText: {
+    fontSize: 16,
+    color: '#666',
+  },
+  radioTextSelected: {
+    color: '#007BFF',
+    fontWeight: '600',
+  },
   button: {
     backgroundColor: '#ff5a5f',
     paddingVertical: 15,
@@ -177,3 +235,5 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
+
+export default SignUp;

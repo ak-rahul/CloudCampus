@@ -9,29 +9,29 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { getFirestore, doc, getDoc } from 'firebase/firestore';
-import Icon from 'react-native-vector-icons/MaterialIcons'; // Import the icon library
-import { auth, signOut } from '../../firebase/firebaseConfig'; // Ensure auth and signOut are correctly imported
+import Icon from 'react-native-vector-icons/MaterialIcons';
+import { auth, signOut } from '../../firebase/firebaseConfig';
 import { useRouter } from 'expo-router';
 
 export default function AvatarOptions() {
   const router = useRouter();
   const [name, setName] = useState('Guest');
-  const [email, setEmail] = useState(''); // Added email state
+  const [email, setEmail] = useState('');
   const [userAvatar, setUserAvatar] = useState(null);
-  const [loading, setLoading] = useState(true); // State to track loading
-  const db = getFirestore(); // Get Firestore instance
+  const [loading, setLoading] = useState(true);
+  const db = getFirestore();
 
   useEffect(() => {
     const fetchUserAvatar = async () => {
-      const user = auth.currentUser; // Get the currently signed-in user
+      const user = auth.currentUser;
       if (user) {
         try {
-          const userDoc = await getDoc(doc(db, 'user-info', user.uid)); // Get user document from the 'user-info' collection
+          const userDoc = await getDoc(doc(db, 'user-info', user.uid));
           if (userDoc.exists()) {
             const userData = userDoc.data();
-            setUserAvatar(userData.avatar); // Set the user's avatar URL
+            setUserAvatar(userData.avatar);
             setName(userData.name);
-            setEmail(user.email); // Set the user's email
+            setEmail(user.email);
           } else {
             console.log('No such document!');
           }
@@ -39,12 +39,12 @@ export default function AvatarOptions() {
           console.error('Error fetching user avatar: ', error);
           Alert.alert('Error', 'Could not fetch user avatar.');
         } finally {
-          setLoading(false); // Set loading to false after data is fetched
+          setLoading(false);
         }
       }
     };
 
-    fetchUserAvatar(); // Call the function to fetch the user's avatar
+    fetchUserAvatar();
   }, []);
 
   const handleClose = () => {
@@ -56,7 +56,7 @@ export default function AvatarOptions() {
     signOut(auth)
       .then(() => {
         console.log('User signed out');
-        router.push('/(auth)/SignIn'); // Navigate to login screen after logout
+        router.push('/(auth)/SignIn');
       })
       .catch((error) => {
         console.error('Error signing out: ', error);
@@ -69,9 +69,8 @@ export default function AvatarOptions() {
       <View style={styles.drawer}>
         <View style={styles.headerBox}>
           <Text style={styles.headerText}>Profile</Text>
-          {/* Close button as an icon */}
           <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
-            <Icon name="close" size={40} color="#841584" /> {/* Large close icon */}
+            <Icon name="close" size={40} color="#841584" />
           </TouchableOpacity>
         </View>
 
@@ -82,23 +81,20 @@ export default function AvatarOptions() {
             ) : userAvatar ? (
               <Image
                 style={styles.avatar}
-                source={{ uri: userAvatar }} // Use user avatar from Firestore
+                source={{ uri: userAvatar }}
               />
             ) : (
               <Text style={styles.noAvatarText}>{name}</Text>
             )}
             <View style={styles.userInfo}>
               <Text style={styles.personName}>{name}</Text>
-              {email && <Text style={styles.userEmail}>{email}</Text>} {/* Display email if available */}
+              {email && <Text style={styles.userEmail}>{email}</Text>}
             </View>
-            
-            {/* Logout Icon for logout */}
             <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-              <Icon name="exit-to-app" size={40} color="#841584" /> {/* "Opening door" icon */}
+              <Icon name="exit-to-app" size={40} color="#841584" />
             </TouchableOpacity>
           </View>
         </View>
-
       </View>
     </View>
   );
@@ -120,10 +116,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingBottom: 10, // Reduced space at the bottom
+    paddingBottom: 10,
     borderBottomWidth: 1,
     borderBottomColor: '#ddd',
-    marginBottom: 5, // Reduced space between the border and the content below
+    marginBottom: 5,
   },
   headerText: {
     fontSize: 24,
@@ -133,7 +129,7 @@ const styles = StyleSheet.create({
   closeButton: {
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 5, // Reduced padding for the close button
+    padding: 5,
   },
   avatarBox: {
     backgroundColor: '#ffffff',
@@ -146,7 +142,7 @@ const styles = StyleSheet.create({
   avatarContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between', // Ensures the avatar and the logout icon are spaced out
+    justifyContent: 'space-between',
   },
   avatar: {
     width: 60,
@@ -161,7 +157,7 @@ const styles = StyleSheet.create({
   },
   userInfo: {
     flexDirection: 'column',
-    flex: 1, // Allow the name and email to take available space
+    flex: 1,
   },
   personName: {
     fontSize: 20,
@@ -169,18 +165,11 @@ const styles = StyleSheet.create({
   },
   userEmail: {
     fontSize: 16,
-    color: '#555', // Light grey color for email
+    color: '#555',
   },
   logoutButton: {
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 5, // Reduced padding for the logout button
-  },
-  optionsContainer: {
-    flex: 1,
-  },
-  option: {
-    fontSize: 18,
-    marginVertical: 10,
+    padding: 5,
   },
 });

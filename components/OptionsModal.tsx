@@ -1,6 +1,7 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Modal } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Modal, ActivityIndicator } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import { getFirestore, doc, getDoc } from 'firebase/firestore';
 
 interface OptionsModalProps {
   visible: boolean;
@@ -10,6 +11,53 @@ interface OptionsModalProps {
 }
 
 const OptionsModal: React.FC<OptionsModalProps> = ({ visible, onClose, onCreateClass, onJoinClass }) => {
+  const [role, setRole] = useState<string | null>(null); // Role can be 'teacher', 'student', or null while loading
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (visible) {
+      const fetchUserRole = async () => {
+        const user = auth.currentUser;
+        if (!user) return;
+
+        try {
+          const db = getFirestore();
+          const userRef = doc(db, 'user-info', user.uid); // Fetch user info by UID
+          const userDoc = await getDoc(userRef);
+
+          if (userDoc.exists()) {
+            setRole(userDoc.data()?.role); // Get the user role (teacher/student)
+          } else {
+            console.error('User document not found');
+          }
+        } catch (error) {
+          console.error('Error fetching user role:', error);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      fetchUserRole();
+    }
+  }, [visible]);
+
+  if (loading) {
+    return (
+      <Modal
+        transparent={true}
+        visible={visible}
+        animationType="slide"
+        onRequestClose={onClose}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <ActivityIndicator size="large" color="#007BFF" />
+          </View>
+        </View>
+      </Modal>
+    );
+  }
+
   return (
     <Modal
       transparent={true}
@@ -23,12 +71,16 @@ const OptionsModal: React.FC<OptionsModalProps> = ({ visible, onClose, onCreateC
             <Icon name="close" size={24} color="#000" />
           </TouchableOpacity>
           <Text style={styles.modalTitle}>Choose an Option</Text>
-          <TouchableOpacity style={styles.optionButton} onPress={onCreateClass}>
-            <Text style={styles.optionText}>Create a Class</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.optionButton} onPress={onJoinClass}>
-            <Text style={styles.optionText}>Join a Class</Text>
-          </TouchableOpacity>
+          {role === 'teacher' && (
+            <TouchableOpacity style={styles.optionButton} onPress={onCreateClass}>
+              <Text style={styles.optionText}>Create a Class</Text>
+            </TouchableOpacity>
+          )}
+          {role === 'student' && (
+            <TouchableOpacity style={styles.optionButton} onPress={onJoinClass}>
+              <Text style={styles.optionText}>Join a Class</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </View>
     </Modal>
