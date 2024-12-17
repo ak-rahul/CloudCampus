@@ -5,32 +5,25 @@ import { auth, firestore } from '../../firebase/firebaseConfig';
 import { doc, setDoc } from 'firebase/firestore';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from "expo-router";
+import { Ionicons } from '@expo/vector-icons'; // For icons
 
 export default function SignUp() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [role, setRole] = useState('student'); // Default role is 'student'
+  const [role, setRole] = useState('student');
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
   const scaleValue = useRef(new Animated.Value(1)).current;
 
   const handlePressIn = () => {
-    Animated.spring(scaleValue, {
-      toValue: 0.95,
-      friction: 5,
-      useNativeDriver: true,
-    }).start();
+    Animated.spring(scaleValue, { toValue: 0.95, friction: 5, useNativeDriver: true }).start();
   };
 
   const handlePressOut = () => {
-    Animated.spring(scaleValue, {
-      toValue: 1,
-      friction: 5,
-      useNativeDriver: true,
-    }).start();
+    Animated.spring(scaleValue, { toValue: 1, friction: 5, useNativeDriver: true }).start();
   };
 
   const handleSignUp = async () => {
@@ -49,18 +42,18 @@ export default function SignUp() {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
-      // Save user data in Firestore with the selected role
-      await setDoc(doc(firestore, "user-info", user.uid), {
-        name: name,
-        email: email,
+      const userData = {
+        name,
+        email,
         avatar: "",
-        role: role,
-      });
+        role,
+        classrooms: role === "teacher" ? [] : null,
+        joinedClassrooms: role === "student" ? [] : null,
+      };
 
-      router.push({
-        pathname: "/(auth)/SelectAvatar",
-        params: { uid: user.uid },
-      });
+      await setDoc(doc(firestore, "user-info", user.uid), userData);
+
+      router.push({ pathname: "/(auth)/SelectAvatar", params: { uid: user.uid } });
     } catch (error) {
       console.error('Error signing up: ', error);
       Alert.alert('Sign-Up Error', error.message);
@@ -69,87 +62,48 @@ export default function SignUp() {
     }
   };
 
-  const renderRadioButton = (value: string, label: string) => (
+  const renderRoleButton = (value, label, iconName) => (
     <TouchableOpacity
-      style={[
-        styles.radioButtonContainer,
-        role === value && styles.radioButtonSelected,
-      ]}
+      activeOpacity={0.9}
       onPress={() => setRole(value)}
-      activeOpacity={0.8}
+      style={[
+        styles.roleButton,
+        role === value && styles.roleButtonSelected,
+      ]}
     >
-      <Text style={[styles.radioText, role === value && styles.radioTextSelected]}>
-        {label}
-      </Text>
+      <LinearGradient
+        colors={role === value ? ['#007BFF', '#0056b3'] : ['#f2f2f2', '#d9d9d9']}
+        style={styles.gradientButton}
+      >
+        <Ionicons
+          name={iconName}
+          size={24}
+          color={role === value ? '#fff' : '#666'}
+          style={styles.icon}
+        />
+        <Text style={[styles.roleText, role === value && styles.roleTextSelected]}>
+          {label}
+        </Text>
+      </LinearGradient>
     </TouchableOpacity>
   );
 
   return (
-    <LinearGradient
-      colors={['#f0f4f7', '#dfe7ed', '#c7d0d8']}
-      style={styles.container}
-    >
+    <LinearGradient colors={['#f0f4f7', '#dfe7ed', '#c7d0d8']} style={styles.container}>
       <View style={styles.formContainer}>
         <Text style={styles.title}>Sign Up</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Full Name"
-          value={name}
-          onChangeText={setName}
-          autoCapitalize="words"
-          placeholderTextColor="#aaa"
-          editable={!isLoading}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Email"
-          value={email}
-          onChangeText={setEmail}
-          keyboardType="email-address"
-          autoCapitalize="none"
-          placeholderTextColor="#aaa"
-          editable={!isLoading}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Password"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-          placeholderTextColor="#aaa"
-          editable={!isLoading}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Confirm Password"
-          value={confirmPassword}
-          onChangeText={setConfirmPassword}
-          secureTextEntry
-          placeholderTextColor="#aaa"
-          editable={!isLoading}
-        />
-
-        {/* Interactive Role Selection */}
-        <Text style={styles.radioTitle}>Select Your Role</Text>
+        <TextInput style={styles.input} placeholder="Full Name" value={name} onChangeText={setName} />
+        <TextInput style={styles.input} placeholder="Email" value={email} onChangeText={setEmail} keyboardType="email-address" />
+        <TextInput style={styles.input} placeholder="Password" value={password} onChangeText={setPassword} secureTextEntry />
+        <TextInput style={styles.input} placeholder="Confirm Password" value={confirmPassword} onChangeText={setConfirmPassword} secureTextEntry />
         <View style={styles.radioGroup}>
-          {renderRadioButton('student', 'Student')}
-          {renderRadioButton('teacher', 'Teacher')}
+          {renderRoleButton('student', 'Student', 'school')}
+          {renderRoleButton('teacher', 'Teacher', 'person')}
         </View>
 
         <Animated.View style={{ transform: [{ scale: scaleValue }] }}>
-          <TouchableOpacity
-            onPress={isLoading ? null : handleSignUp}
-            onPressIn={handlePressIn}
-            onPressOut={handlePressOut}
-            style={[styles.button, isLoading && { backgroundColor: '#ccc' }]}
-            activeOpacity={0.8}
-            disabled={isLoading}
-          >
-            {isLoading ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <Text style={styles.buttonText}>Sign Up</Text>
-            )}
+          <TouchableOpacity onPress={handleSignUp} onPressIn={handlePressIn} onPressOut={handlePressOut} style={styles.button}>
+            {isLoading ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.buttonText}>Sign Up</Text>}
           </TouchableOpacity>
         </Animated.View>
       </View>
@@ -158,82 +112,18 @@ export default function SignUp() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  formContainer: {
-    paddingHorizontal: 20,
-  },
-  title: {
-    fontSize: 28,
-    marginBottom: 30,
-    textAlign: 'center',
-    color: '#333',
-    fontWeight: '600',
-  },
-  input: {
-    height: 50,
-    borderColor: '#ccc',
-    borderWidth: 1,
-    borderRadius: 8,
-    marginBottom: 20,
-    paddingHorizontal: 15,
-    color: '#333',
-    fontSize: 16,
-  },
-  radioTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 10,
-    color: '#333',
-    textAlign: 'center',
-  },
-  radioGroup: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginBottom: 20,
-  },
-  radioButtonContainer: {
-    flex: 1,
-    borderWidth: 2,
-    borderColor: '#ccc',
-    borderRadius: 25,
-    paddingVertical: 10,
-    marginHorizontal: 5,
-    alignItems: 'center',
-    backgroundColor: '#f0f0f0',
-  },
-  radioButtonSelected: {
-    borderColor: '#007BFF',
-    backgroundColor: '#e6f7ff',
-  },
-  radioText: {
-    fontSize: 16,
-    color: '#666',
-  },
-  radioTextSelected: {
-    color: '#007BFF',
-    fontWeight: '600',
-  },
-  button: {
-    backgroundColor: '#ff5a5f',
-    paddingVertical: 15,
-    borderRadius: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.8,
-    shadowRadius: 2,
-    elevation: 5,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  buttonText: {
-    color: '#fff',
-    textAlign: 'center',
-    fontSize: 18,
-    fontWeight: '600',
-  },
+  container: { flex: 1, justifyContent: 'center' },
+  formContainer: { paddingHorizontal: 20 },
+  title: { fontSize: 28, marginBottom: 20, textAlign: 'center', fontWeight: '600' },
+  input: { borderWidth: 1, marginBottom: 15, borderColor: '#ccc', borderRadius: 8, padding: 10 },
+  radioTitle: { fontSize: 16, textAlign: 'center', marginBottom: 10 },
+  radioGroup: { flexDirection: 'row', justifyContent: 'center', gap: 20 },
+  roleButton: { borderRadius: 10, overflow: 'hidden', width: 140, height: 80 },
+  roleButtonSelected: { elevation: 5, shadowColor: '#007BFF' },
+  gradientButton: { flex: 1, justifyContent: 'center', alignItems: 'center', borderRadius: 10 },
+  icon: { marginBottom: 5 },
+  roleText: { fontSize: 16, color: '#666' },
+  roleTextSelected: { color: '#fff', fontWeight: '600' },
+  button: { backgroundColor: '#007BFF', padding: 15, borderRadius: 8, alignItems: 'center', marginTop: 10 },
+  buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
 });
-
-export default SignUp;

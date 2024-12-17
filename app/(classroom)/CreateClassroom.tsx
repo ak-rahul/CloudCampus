@@ -7,55 +7,51 @@ import {
   StyleSheet,
   ScrollView,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import { getFirestore, collection, addDoc, getDoc, doc } from 'firebase/firestore';
+import { auth, firestore } from '../../firebase/firebaseConfig';
+import { collection, addDoc, getDoc, doc } from 'firebase/firestore';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { auth } from '../../firebase/firebaseConfig';
 
-// Function to generate a random classroom code
-const generateClassroomCode = () => {
-  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  let code = '';
-  for (let i = 0; i < 6; i++) {
-    code += characters.charAt(Math.floor(Math.random() * characters.length));
-  }
-  return code;
+// Function to generate a classroom code using creator's name
+const generateClassroomCode = (creatorName) => {
+  const cleanedName = creatorName.replace(/\s+/g, '').toLowerCase();
+  const randomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+  return `${cleanedName}-${randomCode}`;
 };
 
 // Utility function to validate email
-const isValidEmail = (email: string) => /\S+@\S+\.\S+/.test(email);
+const isValidEmail = (email) => /\S+@\S+\.\S+/.test(email);
 
 export default function CreateClassroom() {
   const [className, setClassName] = useState('');
-  const [emailFields, setEmailFields] = useState<string[]>(['']);
-  const [creatorName, setCreatorName] = useState<string>(''); // Creator's name
-  const navigation = useNavigation();
-  const db = getFirestore();
+  const [emailFields, setEmailFields] = useState(['']);
+  const [creatorName, setCreatorName] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Fetch creator's name from Firestore
-  const getCreatorName = async () => {
+  // Fetch the creator's name
+  const fetchCreatorName = async () => {
     const user = auth.currentUser;
-    if (user && user.email) {
+    if (user) {
       try {
-        const userDoc = await getDoc(doc(db, 'user-info', user.uid));
+        const userDoc = await getDoc(doc(firestore, 'user-info', user.uid));
         if (userDoc.exists()) {
-          const userData = userDoc.data();
-          setCreatorName(userData?.name || 'Unknown');
+          setCreatorName(userDoc.data()?.name || 'user');
         }
       } catch (error) {
-        console.error('Error fetching user data:', error);
-        Alert.alert('Error', 'Could not fetch creator name.');
+        console.error('Error fetching creator name:', error);
+        Alert.alert('Error', 'Could not fetch your information.');
       }
     }
   };
 
   useEffect(() => {
-    getCreatorName();
+    fetchCreatorName();
   }, []);
 
-  const handleEmailChange = (text: string, index: number) => {
+  const handleEmailChange = (text, index) => {
     const updatedEmails = [...emailFields];
     updatedEmails[index] = text;
     setEmailFields(updatedEmails);
@@ -65,31 +61,33 @@ export default function CreateClassroom() {
     }
   };
 
-  const handleRemoveEmailField = (index: number) => {
+  const handleRemoveEmailField = (index) => {
     if (emailFields.length > 1) {
-      const updatedEmails = emailFields.filter((_, i) => i !== index);
-      setEmailFields(updatedEmails);
+      setEmailFields(emailFields.filter((_, i) => i !== index));
     }
   };
 
-  const handleCreateClass = async () => {
-    const validEmails = emailFields.filter(email => email.trim() !== '');
-    if (!className || validEmails.length === 0 || !creatorName) {
-      Alert.alert('Error', 'Please fill in all fields.');
+  const handleCreateClassroom = async () => {
+    const validEmails = emailFields.filter((email) => email.trim() !== '');
+
+    if (!className.trim() || !creatorName || validEmails.length === 0) {
+      Alert.alert('Error', 'Please fill in all required fields.');
       return;
     }
 
-    // Check for invalid emails
-    if (validEmails.some(email => !isValidEmail(email))) {
+    // Validate emails
+    if (validEmails.some((email) => !isValidEmail(email))) {
       Alert.alert('Error', 'One or more email addresses are invalid.');
       return;
     }
 
-    try {
-      const classroomCode = generateClassroomCode();
+    setIsLoading(true);
 
-      // Create classroom in Firestore
-      await addDoc(collection(db, 'classrooms'), {
+    try {
+      const classroomCode = generateClassroomCode(creatorName);
+
+      // Add classroom to Firestore
+      await addDoc(collection(firestore, 'classrooms'), {
         name: className,
         emails: validEmails,
         code: classroomCode,
@@ -98,124 +96,103 @@ export default function CreateClassroom() {
       });
 
       // Send notifications to invited users
-      const notificationsRef = collection(db, 'notifications');
+      const notificationsRef = collection(firestore, 'notifications');
       validEmails.forEach(async (email) => {
         await addDoc(notificationsRef, {
           email,
-          message: `You are invited to join the classroom "${className}". Use code: ${classroomCode}`,
+          message: `You have been invited to join "${className}". Use Code: ${classroomCode}`,
           timestamp: new Date(),
-          classroomName: className,
-          classroomCode,
+          classroomCode: classroomCode,
         });
       });
 
-      Alert.alert('Success', `Classroom created successfully! Code: ${classroomCode}`);
+      Alert.alert('Success', `Classroom created! Code: ${classroomCode}`);
       router.push('/(screens)/ClassroomScreen');
     } catch (error) {
-      console.error('Error creating classroom: ', error);
-      Alert.alert('Error', 'Could not create classroom.');
+      console.error('Error creating classroom:', error);
+      Alert.alert('Error', 'Failed to create classroom. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <View style={styles.container}>
-      <TouchableOpacity
-        style={styles.closeButton}
-        onPress={() => navigation.goBack()}
-      >
-        <Icon name="close" size={24} color="#000" />
-      </TouchableOpacity>
+    <LinearGradient colors={['#f0f4f7', '#dfe7ed']} style={styles.container}>
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
+        <Text style={styles.title}>Create a Classroom</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Enter Classroom Name"
+          value={className}
+          onChangeText={setClassName}
+        />
 
-      <Text style={styles.title}>Create a Classroom</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Enter Classroom Name"
-        value={className}
-        onChangeText={setClassName}
-      />
-      <ScrollView contentContainerStyle={styles.emailContainer}>
+        <Text style={styles.subtitle}>Invite Students/Teachers</Text>
         {emailFields.map((email, index) => (
           <View key={index} style={styles.emailFieldContainer}>
             <TextInput
-              style={styles.input}
-              placeholder={`Enter Email ID ${index + 1}`}
+              style={styles.emailInput}
+              placeholder={`Enter Email ${index + 1}`}
               value={email}
-              onChangeText={text => handleEmailChange(text, index)}
+              onChangeText={(text) => handleEmailChange(text, index)}
+              keyboardType="email-address"
             />
             {emailFields.length > 1 && (
-              <TouchableOpacity
-                style={styles.removeButton}
-                onPress={() => handleRemoveEmailField(index)}
-              >
+              <TouchableOpacity onPress={() => handleRemoveEmailField(index)}>
                 <Icon name="remove-circle" size={24} color="#FF6347" />
               </TouchableOpacity>
             )}
           </View>
         ))}
-      </ScrollView>
 
-      <TouchableOpacity style={styles.createButton} onPress={handleCreateClass}>
-        <Text style={styles.createButtonText}>Create Classroom</Text>
-      </TouchableOpacity>
-    </View>
+        <TouchableOpacity
+          style={styles.createButton}
+          onPress={handleCreateClassroom}
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.createButtonText}>Create Classroom</Text>
+          )}
+        </TouchableOpacity>
+      </ScrollView>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    paddingHorizontal: 20,
-    backgroundColor: '#fff',
-    justifyContent: 'flex-start',
-    paddingTop: 60,
-  },
-  closeButton: {
-    position: 'absolute',
-    top: 40,
-    right: 20,
-    zIndex: 10,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    alignSelf: 'center',
-  },
+  container: { flex: 1 },
+  scrollContainer: { padding: 20 },
+  title: { fontSize: 24, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' },
+  subtitle: { fontSize: 18, marginVertical: 10 },
   input: {
-    width: '85%',
-    padding: 10,
-    marginVertical: 10,
-    borderColor: '#ddd',
     borderWidth: 1,
-    borderRadius: 5,
-  },
-  emailContainer: {
-    flexGrow: 0,
-    paddingBottom: 10,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 10,
+    backgroundColor: '#fff',
   },
   emailFieldContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 10,
-    width: '100%',
   },
-  removeButton: {
-    marginLeft: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 5,
+  emailInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    padding: 10,
+    backgroundColor: '#fff',
   },
   createButton: {
-    backgroundColor: '#28A745',
+    backgroundColor: '#007BFF',
     padding: 15,
-    borderRadius: 5,
+    borderRadius: 8,
     alignItems: 'center',
-    marginVertical: 20,
-    alignSelf: 'center',
+    marginTop: 20,
   },
-  createButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
+  createButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
 });

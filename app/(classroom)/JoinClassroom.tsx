@@ -1,40 +1,50 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  Alert,
-} from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import { getFirestore, collection, query, where, getDocs } from 'firebase/firestore';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from 'react-native';
+import { firestore, auth } from '../../firebase/firebaseConfig';
+import { doc, getDoc, updateDoc, arrayUnion } from 'firebase/firestore';
+import { useRouter } from 'expo-router';
 
 export default function JoinClassroom() {
-  const [classCode, setClassCode] = useState('');
-  const navigation = useNavigation();
-  const db = getFirestore();
+  const [classroomCode, setClassroomCode] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
 
-  const handleJoinClass = async () => {
-    if (!classCode.trim()) {
-      Alert.alert('Error', 'Please enter a valid classroom code.');
+  const handleJoinClassroom = async () => {
+    if (!classroomCode.trim()) {
+      Alert.alert('Error', 'Classroom code is required!');
       return;
     }
 
-    try {
-      const classroomsRef = collection(db, 'classrooms');
-      const q = query(classroomsRef, where('code', '==', classCode.trim()));
-      const querySnapshot = await getDocs(q);
+    setIsLoading(true);
 
-      if (!querySnapshot.empty) {
-        Alert.alert('Success', 'You have joined the classroom!');
-        navigation.goBack();
-      } else {
-        Alert.alert('Error', 'Classroom code not found.');
+    try {
+      // Reference to the classroom
+      const classroomRef = doc(firestore, 'classrooms', classroomCode);
+      const classroomSnap = await getDoc(classroomRef);
+
+      if (!classroomSnap.exists()) {
+        Alert.alert('Error', 'Invalid classroom code!');
+        return;
       }
+
+      // Update the classroom's students array
+      await updateDoc(classroomRef, {
+        students: arrayUnion(auth.currentUser.uid),
+      });
+
+      // Update the student's "joinedClassrooms" array in user-info
+      const studentRef = doc(firestore, 'user-info', auth.currentUser.uid);
+      await updateDoc(studentRef, {
+        joinedClassrooms: arrayUnion(classroomCode),
+      });
+
+      Alert.alert('Success', 'You have joined the classroom!');
+      router.push('/dashboard'); // Navigate to dashboard or another page
     } catch (error) {
-      console.error('Error joining classroom:', error);
+      console.error('Error joining classroom: ', error);
       Alert.alert('Error', 'Could not join the classroom. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -44,47 +54,20 @@ export default function JoinClassroom() {
       <TextInput
         style={styles.input}
         placeholder="Enter Classroom Code"
-        value={classCode}
-        onChangeText={setClassCode}
+        value={classroomCode}
+        onChangeText={setClassroomCode}
       />
-      <TouchableOpacity style={styles.joinButton} onPress={handleJoinClass}>
-        <Text style={styles.joinButtonText}>Join Classroom</Text>
+      <TouchableOpacity style={styles.button} onPress={handleJoinClassroom} disabled={isLoading}>
+        {isLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Join Classroom</Text>}
       </TouchableOpacity>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-    backgroundColor: '#fff',
-    justifyContent: 'center',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 20,
-  },
-  input: {
-    width: '100%',
-    padding: 10,
-    marginVertical: 10,
-    borderColor: '#ddd',
-    borderWidth: 1,
-    borderRadius: 5,
-  },
-  joinButton: {
-    backgroundColor: '#007BFF',
-    padding: 15,
-    borderRadius: 5,
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  joinButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
+  container: { flex: 1, justifyContent: 'center', padding: 20 },
+  title: { fontSize: 24, fontWeight: 'bold', textAlign: 'center', marginBottom: 20 },
+  input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 10, marginBottom: 15 },
+  button: { backgroundColor: '#28A745', padding: 15, borderRadius: 8, alignItems: 'center' },
+  buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
 });
