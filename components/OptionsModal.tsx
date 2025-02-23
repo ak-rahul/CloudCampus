@@ -40,12 +40,12 @@ const OptionsModal: React.FC<OptionsModalProps> = ({
       }
 
       try {
-        const userRef = doc(firestore, "user-info", user.uid); // Reference to user document
+        const userRef = doc(firestore, "user-info", user.uid);
         const userDoc = await getDoc(userRef);
 
         if (userDoc.exists()) {
           const userData = userDoc.data();
-          setRole(userData?.role || "unknown"); // Default to 'unknown' if role is missing
+          setRole(userData?.role || "unknown");
         } else {
           console.error("User document not found.");
           setRole("unknown");
@@ -62,7 +62,7 @@ const OptionsModal: React.FC<OptionsModalProps> = ({
       fetchUserRole();
     } else {
       setRole(null);
-      setLoading(true); // Reset state when modal is closed
+      setLoading(true);
     }
   }, [visible]);
 

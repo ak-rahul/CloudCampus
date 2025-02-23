@@ -3,6 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityInd
 import { firestore, auth } from '../../firebase/firebaseConfig';
 import { doc, getDoc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { useRouter } from 'expo-router';
+import Icon from 'react-native-vector-icons/MaterialIcons';
 
 export default function JoinClassroom() {
   const [classroomCode, setClassroomCode] = useState('');
@@ -18,7 +19,13 @@ export default function JoinClassroom() {
     setIsLoading(true);
 
     try {
-      // Reference to the classroom
+      const userId = auth.currentUser?.uid;
+      if (!userId) {
+        Alert.alert('Error', 'User not authenticated!');
+        return;
+      }
+
+      // Reference to the classroom document
       const classroomRef = doc(firestore, 'classrooms', classroomCode);
       const classroomSnap = await getDoc(classroomRef);
 
@@ -27,13 +34,21 @@ export default function JoinClassroom() {
         return;
       }
 
+      const classroomData = classroomSnap.data();
+
+      // Check if user is already in the classroom
+      if (classroomData.students?.includes(userId)) {
+        Alert.alert('Info', 'You are already a member of this classroom.');
+        return;
+      }
+
       // Update the classroom's students array
       await updateDoc(classroomRef, {
-        students: arrayUnion(auth.currentUser.uid),
+        students: arrayUnion(userId),
       });
 
       // Update the student's "joinedClassrooms" array in user-info
-      const studentRef = doc(firestore, 'user-info', auth.currentUser.uid);
+      const studentRef = doc(firestore, 'user-info', userId);
       await updateDoc(studentRef, {
         joinedClassrooms: arrayUnion(classroomCode),
       });
@@ -48,8 +63,18 @@ export default function JoinClassroom() {
     }
   };
 
+  const handleClose = () => {
+    router.back(); // Go back to the previous screen
+  };
+
   return (
     <View style={styles.container}>
+      {/* Close Button */}
+      <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
+        <Icon name="close" size={28} color="#000" />
+      </TouchableOpacity>
+
+      {/* Main Content */}
       <Text style={styles.title}>Join a Classroom</Text>
       <TextInput
         style={styles.input}
@@ -65,9 +90,41 @@ export default function JoinClassroom() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', padding: 20 },
-  title: { fontSize: 24, fontWeight: 'bold', textAlign: 'center', marginBottom: 20 },
-  input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 10, marginBottom: 15 },
-  button: { backgroundColor: '#28A745', padding: 15, borderRadius: 8, alignItems: 'center' },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  container: { 
+    flex: 1, 
+    justifyContent: 'center', 
+    padding: 20,
+    position: 'relative',
+  },
+  closeButton: {
+    position: 'absolute',
+    top: 40, // Adjust for status bar height
+    right: 20,
+    zIndex: 10,
+  },
+  title: { 
+    fontSize: 24, 
+    fontWeight: 'bold', 
+    textAlign: 'center', 
+    marginBottom: 20,
+  },
+  input: { 
+    borderWidth: 1, 
+    borderColor: '#ccc', 
+    borderRadius: 8, 
+    padding: 10, 
+    marginBottom: 15,
+  },
+  button: { 
+    backgroundColor: '#28A745', 
+    padding: 15, 
+    borderRadius: 8, 
+    alignItems: 'center',
+  },
+  buttonText: { 
+    color: '#fff', 
+    fontSize: 16, 
+    fontWeight: '600',
+  },
 });
+

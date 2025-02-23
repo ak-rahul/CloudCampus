@@ -10,19 +10,17 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { auth, firestore } from '../../firebase/firebaseConfig';
-import { collection, addDoc, getDoc, doc } from 'firebase/firestore';
+import { collection, addDoc, getDoc, doc, updateDoc, arrayUnion } from 'firebase/firestore';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 
-// Function to generate a classroom code using creator's name
 const generateClassroomCode = (creatorName) => {
   const cleanedName = creatorName.replace(/\s+/g, '').toLowerCase();
   const randomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
   return `${cleanedName}-${randomCode}`;
 };
 
-// Utility function to validate email
 const isValidEmail = (email) => /\S+@\S+\.\S+/.test(email);
 
 export default function CreateClassroom() {
@@ -30,10 +28,9 @@ export default function CreateClassroom() {
   const [emailFields, setEmailFields] = useState(['']);
   const [creatorName, setCreatorName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const user = auth.currentUser;
 
-  // Fetch the creator's name
   const fetchCreatorName = async () => {
-    const user = auth.currentUser;
     if (user) {
       try {
         const userDoc = await getDoc(doc(firestore, 'user-info', user.uid));
@@ -75,19 +72,15 @@ export default function CreateClassroom() {
       return;
     }
 
-    // Validate emails
     if (validEmails.some((email) => !isValidEmail(email))) {
       Alert.alert('Error', 'One or more email addresses are invalid.');
       return;
     }
 
     setIsLoading(true);
-
     try {
       const classroomCode = generateClassroomCode(creatorName);
-
-      // Add classroom to Firestore
-      await addDoc(collection(firestore, 'classrooms'), {
+      const classroomRef = await addDoc(collection(firestore, 'classrooms'), {
         name: className,
         emails: validEmails,
         code: classroomCode,
@@ -95,7 +88,12 @@ export default function CreateClassroom() {
         createdAt: new Date(),
       });
 
-      // Send notifications to invited users
+      const userRef = doc(firestore, 'user-info', user.uid);
+      await updateDoc(userRef, {
+        role: 'teacher',
+        classrooms: arrayUnion(classroomCode),
+      });
+
       const notificationsRef = collection(firestore, 'notifications');
       validEmails.forEach(async (email) => {
         await addDoc(notificationsRef, {
@@ -126,7 +124,6 @@ export default function CreateClassroom() {
           value={className}
           onChangeText={setClassName}
         />
-
         <Text style={styles.subtitle}>Invite Students/Teachers</Text>
         {emailFields.map((email, index) => (
           <View key={index} style={styles.emailFieldContainer}>
@@ -144,7 +141,6 @@ export default function CreateClassroom() {
             )}
           </View>
         ))}
-
         <TouchableOpacity
           style={styles.createButton}
           onPress={handleCreateClassroom}
