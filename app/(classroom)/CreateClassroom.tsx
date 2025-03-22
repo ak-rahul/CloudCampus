@@ -10,7 +10,14 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { auth, firestore } from '../../firebase/firebaseConfig';
-import { collection, addDoc, getDoc, doc, updateDoc, arrayUnion } from 'firebase/firestore';
+import {
+  collection,
+  addDoc,
+  getDoc,
+  doc,
+  updateDoc,
+  arrayUnion,
+} from 'firebase/firestore';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
@@ -94,14 +101,25 @@ export default function CreateClassroom() {
         classrooms: arrayUnion(classroomCode),
       });
 
-      const notificationsRef = collection(firestore, 'notifications');
+      // 🔔 Add notification with `type` field
       validEmails.forEach(async (email) => {
-        await addDoc(notificationsRef, {
-          email,
-          message: `You have been invited to join "${className}". Use Code: ${classroomCode}`,
-          timestamp: new Date(),
-          classroomCode: classroomCode,
-        });
+        try {
+          const userNotificationsRef = collection(
+            firestore,
+            'notifications',
+            email,
+            'messages'
+          );
+          await addDoc(userNotificationsRef, {
+            message: `You have been invited to join "${className}". Use Code: ${classroomCode}`,
+            timestamp: new Date(),
+            classroomCode: classroomCode,
+            read: false,
+            type: 'classroom-join', // ✅ Added type
+          });
+        } catch (error) {
+          console.error(`Error sending notification to ${email}:`, error);
+        }
       });
 
       Alert.alert('Success', `Classroom created! Code: ${classroomCode}`);
@@ -160,7 +178,12 @@ export default function CreateClassroom() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   scrollContainer: { padding: 20 },
-  title: { fontSize: 24, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
   subtitle: { fontSize: 18, marginVertical: 10 },
   input: {
     borderWidth: 1,
@@ -190,5 +213,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 20,
   },
-  createButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  createButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
 });

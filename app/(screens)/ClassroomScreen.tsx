@@ -1,10 +1,27 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Alert } from 'react-native';
-import { useRouter } from "expo-router";
+import {
+  View,
+  Text,
+  StyleSheet,
+  Image,
+  TouchableOpacity,
+  ScrollView,
+  Alert,
+} from 'react-native';
+import { useRouter } from 'expo-router';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import ClassroomBox from '../../components/ClassroomBox';
 import OptionsModal from '../../components/OptionsModal';
-import { getFirestore, doc, getDoc, collection, getDocs, query, where } from 'firebase/firestore';
+import {
+  getFirestore,
+  doc,
+  getDoc,
+  collection,
+  getDocs,
+  query,
+  where,
+  onSnapshot,
+} from 'firebase/firestore';
 import { auth } from '../../firebase/firebaseConfig';
 
 export default function ClassroomScreen() {
@@ -13,6 +30,7 @@ export default function ClassroomScreen() {
   const [userAvatar, setUserAvatar] = useState<string | null>(null);
   const [classrooms, setClassrooms] = useState<any[]>([]);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [notificationCount, setNotificationCount] = useState<number>(0);
   const db = getFirestore();
 
   useEffect(() => {
@@ -25,8 +43,10 @@ export default function ClassroomScreen() {
           if (userDoc.exists()) {
             const userData = userDoc.data();
             setUserAvatar(userData.avatar || null);
-            setUserRole(userData.role || 'student');
-            fetchClassrooms(userData);
+            const role = userData.role || 'student';
+            setUserRole(role);
+            fetchClassrooms(userData, role);
+            listenToNotifications(user.email);
           } else {
             console.log('No user document found!');
           }
@@ -40,28 +60,54 @@ export default function ClassroomScreen() {
     fetchUserData();
   }, []);
 
-  const fetchClassrooms = async (userData: any) => {
+  const listenToNotifications = (email: string) => {
+    const notificationsRef = collection(db, 'notifications', email, 'messages');
+    const unsubscribe = onSnapshot(
+      notificationsRef,
+      (snapshot) => {
+        setNotificationCount(snapshot.size);
+      },
+      (error) => {
+        console.error('Error fetching notifications: ', error);
+      }
+    );
+
+    return unsubscribe;
+  };
+
+  const fetchClassrooms = async (userData: any, role: string) => {
     try {
       const user = auth.currentUser;
       if (!user || !userData) return;
 
-      let classroomsList = [];
-      if (userData.role === 'teacher') {
-        // Fetch classrooms created by the teacher
-        const classroomsQuery = query(collection(db, 'classrooms'), where('createdBy', '==', userData.name));
-        const classroomsSnapshot = await getDocs(classroomsQuery);
-        classroomsList = classroomsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      } else if (userData.role === 'student' && userData.joinedClassrooms?.length > 0) {
-        // Fetch classrooms that match the student's joinedClassrooms
-        const classroomsQuery = query(
+      let fetchedClassrooms: any[] = [];
+
+      if (role === 'teacher') {
+        // Fetch classrooms created by teacher
+        const createdQuery = query(
           collection(db, 'classrooms'),
-          where('__name__', 'in', userData.joinedClassrooms) // Filter by document ID
+          where('createdBy', '==', userData.name)
         );
-        const classroomsSnapshot = await getDocs(classroomsQuery);
-        classroomsList = classroomsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const createdSnapshot = await getDocs(createdQuery);
+        createdSnapshot.forEach((doc) => {
+          fetchedClassrooms.push({ id: doc.id, ...doc.data() });
+        });
+      } else {
+        // Fetch classrooms joined by student
+        const joinedIds = userData.joinedClassrooms || [];
+        if (joinedIds.length > 0) {
+          const joinedQuery = query(
+            collection(db, 'classrooms'),
+            where('code', 'in', joinedIds)
+          );
+          const joinedSnapshot = await getDocs(joinedQuery);
+          joinedSnapshot.forEach((doc) => {
+            fetchedClassrooms.push({ id: doc.id, ...doc.data() });
+          });
+        }
       }
 
-      setClassrooms(classroomsList);
+      setClassrooms(fetchedClassrooms);
     } catch (error) {
       console.error('Error fetching classrooms: ', error);
       Alert.alert('Error', 'Could not fetch classrooms.');
@@ -70,12 +116,12 @@ export default function ClassroomScreen() {
 
   const handleCreateClass = () => {
     setModalVisible(false);
-    router.push("/(classroom)/CreateClassroom");
+    router.push('/(classroom)/CreateClassroom');
   };
 
   const handleJoinClass = () => {
     setModalVisible(false);
-    router.push("/(classroom)/JoinClassroom");
+    router.push('/(classroom)/JoinClassroom');
   };
 
   const handleNotifications = () => {
@@ -88,12 +134,23 @@ export default function ClassroomScreen() {
         <Text style={styles.headingText}>Classrooms</Text>
         <View style={styles.headerActions}>
           <TouchableOpacity style={styles.notificationsButton} onPress={handleNotifications}>
-            <Icon name="notifications" size={24} color="#000" />
+            <Icon
+              name={notificationCount > 0 ? 'notifications-active' : 'notifications-none'}
+              size={24}
+              color={notificationCount > 0 ? '#FF3B30' : '#000'}
+            />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.avatarTouchableArea} onPress={() => router.push('/(screens)/AvatarOptions')}>
+          <TouchableOpacity
+            style={styles.avatarTouchableArea}
+            onPress={() => router.push('/(screens)/AvatarOptions')}
+          >
             <Image
               style={styles.avatar}
-              source={userAvatar ? { uri: userAvatar } : require('../../assets/avatar.png')}
+              source={
+                userAvatar
+                  ? { uri: userAvatar }
+                  : require('../../assets/avatar.png')
+              }
             />
           </TouchableOpacity>
         </View>
@@ -110,14 +167,17 @@ export default function ClassroomScreen() {
             ))
           ) : (
             <Text style={styles.noClassroomText}>
-              {userRole === 'student'
-                ? "You haven't joined any classrooms yet."
-                : "You haven't created any classrooms yet."}
+              {userRole === 'teacher'
+                ? 'You haven’t created any classrooms yet.'
+                : 'You haven’t joined any classrooms yet.'}
             </Text>
           )}
         </ScrollView>
       </View>
-      <TouchableOpacity style={styles.floatingButton} onPress={() => setModalVisible(true)}>
+      <TouchableOpacity
+        style={styles.floatingButton}
+        onPress={() => setModalVisible(true)}
+      >
         <Icon name="add" size={24} color="#fff" />
       </TouchableOpacity>
 

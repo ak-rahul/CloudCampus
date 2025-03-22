@@ -1,9 +1,17 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
+  Alert,
+} from 'react-native';
 import { useRouter } from 'expo-router';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import { getFirestore, collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
+import { getFirestore, collection, orderBy, onSnapshot, query } from 'firebase/firestore';
 import { auth } from '../../firebase/firebaseConfig';
+import NotificationBox from '../../components/NotificationBox';
 
 export default function NotificationScreen() {
   const [notifications, setNotifications] = useState<any[]>([]);
@@ -13,18 +21,14 @@ export default function NotificationScreen() {
   useEffect(() => {
     const user = auth.currentUser;
     if (!user || !user.email) return;
-    const notificationsRef = collection(db, 'notifications');
-    const notificationsQuery = query(
-      notificationsRef,
-      where('email', '==', user.email),
-      orderBy('timestamp', 'desc')
-    );
 
-    // Real-time listener
+    const userMessagesRef = collection(db, 'notifications', user.email, 'messages');
+    const notificationsQuery = query(userMessagesRef, orderBy('timestamp', 'desc'));
+
     const unsubscribe = onSnapshot(
       notificationsQuery,
       (snapshot) => {
-        const notificationsList = snapshot.docs.map(doc => ({
+        const notificationsList = snapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
         }));
@@ -40,25 +44,13 @@ export default function NotificationScreen() {
   }, []);
 
   const renderItem = ({ item }: { item: any }) => (
-    <TouchableOpacity
-      style={styles.notificationBox}
-      onPress={() => handleNotificationClick(item)}
-    >
-      <Text style={styles.notificationTitle}>{item.message}</Text>
-      <Text style={styles.notificationTimestamp}>
-        {new Date(item.timestamp?.toDate()).toLocaleString()}
-      </Text>
-    </TouchableOpacity>
+    <NotificationBox notification={item} />
   );
-
-  const handleNotificationClick = (item: any) => {
-    router.push('/NotificationDetails', { notification: item });
-  };
 
   return (
     <View style={styles.container}>
       <View style={styles.headerBox}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+        <TouchableOpacity onPress={() => router.push('/(screens)/ClassroomScreen')} style={styles.backButton}>
           <Icon name="arrow-back" size={24} color="#007BFF" />
         </TouchableOpacity>
         <Text style={styles.headingText}>Notifications</Text>
@@ -80,24 +72,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F9F9F9',
-  },
-  notificationBox: {
-    backgroundColor: '#fff',
-    padding: 15,
-    marginVertical: 5,
-    marginHorizontal: 10,
-    borderRadius: 5,
-    borderWidth: 1,
-    borderColor: '#DDD',
-  },
-  notificationTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 5,
-  },
-  notificationTimestamp: {
-    fontSize: 12,
-    color: '#555',
   },
   headerBox: {
     flexDirection: 'row',
