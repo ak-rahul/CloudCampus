@@ -1,4 +1,3 @@
-// app/(classroom)/Classroom.tsx
 import React, { useEffect, useState } from 'react';
 import {
   View,
@@ -12,6 +11,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { getFirestore, doc, getDoc } from 'firebase/firestore';
 import { Ionicons } from '@expo/vector-icons';
 import { getAuth } from 'firebase/auth';
+import AssignmentModal from '../../components/AssignmentModal'; // Adjust path if different
 
 export default function Classroom() {
   const { id } = useLocalSearchParams();
@@ -19,6 +19,7 @@ export default function Classroom() {
   const [classroom, setClassroom] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isCreator, setIsCreator] = useState(false);
+  const [showModal, setShowModal] = useState(false);
 
   const db = getFirestore();
   const auth = getAuth();
@@ -31,9 +32,7 @@ export default function Classroom() {
           const data = { id: classroomDoc.id, ...classroomDoc.data() };
           setClassroom(data);
 
-          // Check if current user is the creator
           const currentUser = auth.currentUser;
-          console.log(currentUser)
           if (currentUser && currentUser.email === data.createdBy) {
             setIsCreator(true);
           }
@@ -49,9 +48,11 @@ export default function Classroom() {
   }, []);
 
   const handleCreateAssignment = () => {
-    // Navigate to the create-assignment page or show a modal
-    console.log('Navigate to create-assignment screen');
-    // router.push(`/create-assignment/${id}`); // example route
+    setShowModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setShowModal(false);
   };
 
   if (loading) {
@@ -73,7 +74,6 @@ export default function Classroom() {
   return (
     <View style={styles.wrapper}>
       <ScrollView style={styles.container}>
-        {/* Header with Back Button */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
             <Ionicons name="arrow-back" size={24} color="#fff" />
@@ -84,7 +84,6 @@ export default function Classroom() {
           </Text>
         </View>
 
-        {/* Info Cards */}
         <View style={styles.infoSection}>
           <View style={styles.infoCard}>
             <Text style={styles.infoTitle}>Class Code</Text>
@@ -98,12 +97,18 @@ export default function Classroom() {
         </View>
       </ScrollView>
 
-      {/* Floating '+' Button */}
       {isCreator && (
-        <TouchableOpacity style={styles.fab} onPress={handleCreateAssignment}>
-          <Ionicons name="add" size={28} color="#fff" />
+        <TouchableOpacity style={styles.fabContainer} onPress={handleCreateAssignment}>
+          <Ionicons name="document-text-outline" size={24} color="#fff" />
+          <Text style={styles.fabText}>Create Assignment</Text>
         </TouchableOpacity>
       )}
+
+      <AssignmentModal
+        visible={showModal}
+        onClose={handleCloseModal}
+        classroomId={id as string}
+      />
     </View>
   );
 }
@@ -166,16 +171,22 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#333',
   },
-  fab: {
+  fabContainer: {
     position: 'absolute',
     right: 20,
     bottom: 30,
     backgroundColor: '#3f51b5',
     borderRadius: 30,
-    width: 60,
-    height: 60,
-    justifyContent: 'center',
+    flexDirection: 'row',
     alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
     elevation: 5,
+  },
+  fabText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 10,
   },
 });

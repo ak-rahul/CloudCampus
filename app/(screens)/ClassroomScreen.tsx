@@ -75,7 +75,7 @@ export default function ClassroomScreen() {
       if (role === 'teacher') {
         const createdQuery = query(
           collection(db, 'classrooms'),
-          where('createdBy', '==', userData.name)
+          where('createdBy', '==', userData.email)
         );
         const createdSnapshot = await getDocs(createdQuery);
         createdSnapshot.forEach((doc) => {
