@@ -13,7 +13,6 @@ import { auth, firestore } from '../../firebase/firebaseConfig';
 import {
   collection,
   addDoc,
-  getDoc,
   doc,
   updateDoc,
   arrayUnion,
@@ -22,40 +21,21 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 
-const generateClassroomCode = (creatorName) => {
-  const cleanedName = creatorName.replace(/\s+/g, '').toLowerCase();
+const generateClassroomCode = (identifier: string) => {
+  const cleaned = identifier.replace(/\s+/g, '').toLowerCase();
   const randomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-  return `${cleanedName}-${randomCode}`;
+  return `${cleaned}-${randomCode}`;
 };
 
-const isValidEmail = (email) => /\S+@\S+\.\S+/.test(email);
+const isValidEmail = (email: string) => /\S+@\S+\.\S+/.test(email);
 
 export default function CreateClassroom() {
   const [className, setClassName] = useState('');
   const [emailFields, setEmailFields] = useState(['']);
-  const [creatorName, setCreatorName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const user = auth.currentUser;
 
-  const fetchCreatorName = async () => {
-    if (user) {
-      try {
-        const userDoc = await getDoc(doc(firestore, 'user-info', user.uid));
-        if (userDoc.exists()) {
-          setCreatorName(userDoc.data()?.name || 'user');
-        }
-      } catch (error) {
-        console.error('Error fetching creator name:', error);
-        Alert.alert('Error', 'Could not fetch your information.');
-      }
-    }
-  };
-
-  useEffect(() => {
-    fetchCreatorName();
-  }, []);
-
-  const handleEmailChange = (text, index) => {
+  const handleEmailChange = (text: string, index: number) => {
     const updatedEmails = [...emailFields];
     updatedEmails[index] = text;
     setEmailFields(updatedEmails);
@@ -65,7 +45,7 @@ export default function CreateClassroom() {
     }
   };
 
-  const handleRemoveEmailField = (index) => {
+  const handleRemoveEmailField = (index: number) => {
     if (emailFields.length > 1) {
       setEmailFields(emailFields.filter((_, i) => i !== index));
     }
@@ -74,7 +54,7 @@ export default function CreateClassroom() {
   const handleCreateClassroom = async () => {
     const validEmails = emailFields.filter((email) => email.trim() !== '');
 
-    if (!className.trim() || !creatorName || validEmails.length === 0) {
+    if (!className.trim() || !user?.email || validEmails.length === 0) {
       Alert.alert('Error', 'Please fill in all required fields.');
       return;
     }
@@ -86,12 +66,12 @@ export default function CreateClassroom() {
 
     setIsLoading(true);
     try {
-      const classroomCode = generateClassroomCode(creatorName);
+      const classroomCode = generateClassroomCode(user.email.split('@')[0]);
       const classroomRef = await addDoc(collection(firestore, 'classrooms'), {
         name: className,
         emails: validEmails,
         code: classroomCode,
-        createdBy: creatorName,
+        createdBy: user.email, // ✅ using user's email here
         createdAt: new Date(),
       });
 
@@ -101,7 +81,7 @@ export default function CreateClassroom() {
         classrooms: arrayUnion(classroomCode),
       });
 
-      // 🔔 Add notification with `type` field
+      // Send notifications
       validEmails.forEach(async (email) => {
         try {
           const userNotificationsRef = collection(
@@ -113,9 +93,9 @@ export default function CreateClassroom() {
           await addDoc(userNotificationsRef, {
             message: `You have been invited to join "${className}". Use Code: ${classroomCode}`,
             timestamp: new Date(),
-            classroomCode: classroomCode,
+            classroomCode,
             read: false,
-            type: 'classroom-join', // ✅ Added type
+            type: 'classroom-join',
           });
         } catch (error) {
           console.error(`Error sending notification to ${email}:`, error);

@@ -1,24 +1,26 @@
+// components/ClassroomBox.tsx
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 
 interface ClassroomBoxProps {
   heading: string;
   subtitle: string;
+  onPress: () => void;
 }
 
-const ClassroomBox: React.FC<ClassroomBoxProps> = ({ heading, subtitle }) => {
+const ClassroomBox: React.FC<ClassroomBoxProps> = ({ heading, subtitle, onPress }) => {
   return (
-    <View style={styles.box}>
+    <TouchableOpacity style={styles.box} onPress={onPress}>
       <Text style={styles.heading}>{heading}</Text>
       <Text style={styles.subtitle}>{subtitle}</Text>
-    </View>
+    </TouchableOpacity>
   );
 };
 
 const styles = StyleSheet.create({
   box: {
     backgroundColor: '#f0f0f0',
-    height: 100,  
+    height: 100,
     padding: 20,
     borderRadius: 10,
     shadowColor: '#000',

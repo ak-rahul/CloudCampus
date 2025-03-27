@@ -1,3 +1,4 @@
+// app/(screens)/ClassroomScreen.tsx
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -47,11 +48,8 @@ export default function ClassroomScreen() {
             setUserRole(role);
             fetchClassrooms(userData, role);
             listenToNotifications(user.email);
-          } else {
-            console.log('No user document found!');
           }
         } catch (error) {
-          console.error('Error fetching user data: ', error);
           Alert.alert('Error', 'Could not fetch user data.');
         }
       }
@@ -62,17 +60,9 @@ export default function ClassroomScreen() {
 
   const listenToNotifications = (email: string) => {
     const notificationsRef = collection(db, 'notifications', email, 'messages');
-    const unsubscribe = onSnapshot(
-      notificationsRef,
-      (snapshot) => {
-        setNotificationCount(snapshot.size);
-      },
-      (error) => {
-        console.error('Error fetching notifications: ', error);
-      }
-    );
-
-    return unsubscribe;
+    return onSnapshot(notificationsRef, (snapshot) => {
+      setNotificationCount(snapshot.size);
+    });
   };
 
   const fetchClassrooms = async (userData: any, role: string) => {
@@ -83,7 +73,6 @@ export default function ClassroomScreen() {
       let fetchedClassrooms: any[] = [];
 
       if (role === 'teacher') {
-        // Fetch classrooms created by teacher
         const createdQuery = query(
           collection(db, 'classrooms'),
           where('createdBy', '==', userData.name)
@@ -93,7 +82,6 @@ export default function ClassroomScreen() {
           fetchedClassrooms.push({ id: doc.id, ...doc.data() });
         });
       } else {
-        // Fetch classrooms joined by student
         const joinedIds = userData.joinedClassrooms || [];
         if (joinedIds.length > 0) {
           const joinedQuery = query(
@@ -109,7 +97,6 @@ export default function ClassroomScreen() {
 
       setClassrooms(fetchedClassrooms);
     } catch (error) {
-      console.error('Error fetching classrooms: ', error);
       Alert.alert('Error', 'Could not fetch classrooms.');
     }
   };
@@ -133,7 +120,7 @@ export default function ClassroomScreen() {
       <View style={styles.headerBox}>
         <Text style={styles.headingText}>Classrooms</Text>
         <View style={styles.headerActions}>
-          <TouchableOpacity style={styles.notificationsButton} onPress={handleNotifications}>
+          <TouchableOpacity onPress={handleNotifications}>
             <Icon
               name={notificationCount > 0 ? 'notifications-active' : 'notifications-none'}
               size={24}
@@ -155,6 +142,7 @@ export default function ClassroomScreen() {
           </TouchableOpacity>
         </View>
       </View>
+
       <View style={styles.boxContainer}>
         <ScrollView>
           {classrooms.length > 0 ? (
@@ -163,6 +151,12 @@ export default function ClassroomScreen() {
                 key={classroom.id}
                 heading={classroom.name}
                 subtitle={`Created by: ${classroom.createdBy}`}
+                onPress={() =>
+                  router.push({
+                    pathname: '/(classroom)/Classroom',
+                    params: { id: classroom.id },
+                  })
+                }
               />
             ))
           ) : (
@@ -174,6 +168,7 @@ export default function ClassroomScreen() {
           )}
         </ScrollView>
       </View>
+
       <TouchableOpacity
         style={styles.floatingButton}
         onPress={() => setModalVisible(true)}
@@ -194,40 +189,27 @@ export default function ClassroomScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   headerBox: {
-    backgroundColor: '#f0f0f0',
     paddingTop: 40,
-    paddingLeft: 20,
+    paddingHorizontal: 20,
     paddingBottom: 10,
-    paddingRight: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#ddd',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 5,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    backgroundColor: '#f0f0f0',
+    borderBottomWidth: 1,
+    borderBottomColor: '#ddd',
   },
   headingText: { fontSize: 24, fontWeight: 'bold' },
   headerActions: { flexDirection: 'row', alignItems: 'center' },
-  notificationsButton: { marginRight: 10 },
   avatarTouchableArea: {
-    width: 60,
-    height: 60,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 30,
-    backgroundColor: 'transparent',
+    marginLeft: 10,
+    width: 47,
+    height: 47,
+    borderRadius: 24,
+    overflow: 'hidden',
   },
-  avatar: { width: 47, height: 47, borderRadius: 20 },
-  boxContainer: {
-    flex: 1,
-    flexGrow: 1,
-    flexDirection: 'column',
-    paddingBottom: 20,
-  },
+  avatar: { width: 47, height: 47 },
+  boxContainer: { flex: 1 },
   noClassroomText: {
     textAlign: 'center',
     marginTop: 20,
@@ -244,10 +226,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#007BFF',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
     elevation: 5,
   },
 });
