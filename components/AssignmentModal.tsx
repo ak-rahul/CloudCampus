@@ -11,21 +11,23 @@ import {
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import Icon from "react-native-vector-icons/MaterialIcons";
+import {
+  getFirestore,
+  collection,
+  addDoc,
+  Timestamp,
+} from "firebase/firestore";
 
 interface AssignmentModalProps {
   visible: boolean;
   onClose: () => void;
-  onCreate: (
-    title: string,
-    description: string,
-    dueDate: Date | null
-  ) => void;
+  classroomId: string;
 }
 
 const AssignmentModal: React.FC<AssignmentModalProps> = ({
   visible,
   onClose,
-  onCreate,
+  classroomId,
 }) => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -33,17 +35,34 @@ const AssignmentModal: React.FC<AssignmentModalProps> = ({
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [mode, setMode] = useState<"date" | "time">("date");
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     if (!title.trim()) {
       Alert.alert("Error", "Assignment title is required.");
       return;
     }
 
-    onCreate(title, description, dueDate);
-    setTitle("");
-    setDescription("");
-    setDueDate(null);
-    onClose();
+    try {
+      const db = getFirestore();
+
+      await addDoc(
+        collection(db, "classrooms", classroomId, "assignments"),
+        {
+          title,
+          description,
+          dueDate: dueDate ? Timestamp.fromDate(dueDate) : null,
+          createdAt: Timestamp.now(),
+        }
+      );
+
+      Alert.alert("Success", "Assignment created successfully!");
+      setTitle("");
+      setDescription("");
+      setDueDate(null);
+      onClose();
+    } catch (error) {
+      console.error("Error creating assignment:", error);
+      Alert.alert("Error", "Failed to create assignment.");
+    }
   };
 
   const showPicker = (pickerMode: "date" | "time") => {
@@ -65,7 +84,10 @@ const AssignmentModal: React.FC<AssignmentModalProps> = ({
           return newDate;
         } else {
           const newDate = new Date(prevDate || new Date());
-          newDate.setHours(selectedDate.getHours(), selectedDate.getMinutes());
+          newDate.setHours(
+            selectedDate.getHours(),
+            selectedDate.getMinutes()
+          );
           return newDate;
         }
       });
@@ -107,9 +129,7 @@ const AssignmentModal: React.FC<AssignmentModalProps> = ({
             onPress={() => showPicker("date")}
           >
             <Text style={styles.dateButtonText}>
-              {dueDate
-                ? `Due: ${formatDate(dueDate)}`
-                : "Set Due Date"}
+              {dueDate ? `Due: ${formatDate(dueDate)}` : "Set Due Date"}
             </Text>
           </TouchableOpacity>
 
