@@ -11,12 +11,7 @@ import {
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import Icon from "react-native-vector-icons/MaterialIcons";
-import {
-  getFirestore,
-  collection,
-  addDoc,
-  Timestamp,
-} from "firebase/firestore";
+import { getFirestore, collection, addDoc, Timestamp } from "firebase/firestore";
 
 interface AssignmentModalProps {
   visible: boolean;
@@ -35,6 +30,8 @@ const AssignmentModal: React.FC<AssignmentModalProps> = ({
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [mode, setMode] = useState<"date" | "time">("date");
 
+  const db = getFirestore();
+
   const handleCreate = async () => {
     if (!title.trim()) {
       Alert.alert("Error", "Assignment title is required.");
@@ -42,17 +39,12 @@ const AssignmentModal: React.FC<AssignmentModalProps> = ({
     }
 
     try {
-      const db = getFirestore();
-
-      await addDoc(
-        collection(db, "classrooms", classroomId, "assignments"),
-        {
-          title,
-          description,
-          dueDate: dueDate ? Timestamp.fromDate(dueDate) : null,
-          createdAt: Timestamp.now(),
-        }
-      );
+      await addDoc(collection(db, "classrooms", classroomId, "assignments"), {
+        title,
+        description,
+        dueDate: dueDate ? Timestamp.fromDate(dueDate) : null,
+        createdAt: Timestamp.now(),
+      });
 
       Alert.alert("Success", "Assignment created successfully!");
       setTitle("");
@@ -84,10 +76,7 @@ const AssignmentModal: React.FC<AssignmentModalProps> = ({
           return newDate;
         } else {
           const newDate = new Date(prevDate || new Date());
-          newDate.setHours(
-            selectedDate.getHours(),
-            selectedDate.getMinutes()
-          );
+          newDate.setHours(selectedDate.getHours(), selectedDate.getMinutes());
           return newDate;
         }
       });
