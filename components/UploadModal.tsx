@@ -7,11 +7,12 @@ import {
   Modal,
 } from "react-native";
 import Icon from "react-native-vector-icons/MaterialIcons";
+import { useRouter, useLocalSearchParams } from "expo-router";
 
 interface UploadModalProps {
   visible: boolean;
   onClose: () => void;
-  onSelectOption: (option: "scanner" | "file") => void;
+  onSelectOption: (option: "file") => void; // Scanner handled by direct navigation
 }
 
 const UploadModal: React.FC<UploadModalProps> = ({
@@ -19,6 +20,21 @@ const UploadModal: React.FC<UploadModalProps> = ({
   onClose,
   onSelectOption,
 }) => {
+  const router = useRouter();
+  const { classroomId, assignmentId } = useLocalSearchParams();
+
+  const handleScannerPress = () => {
+    onClose();
+
+    router.push({
+      pathname: "/(scanner)/ScannerScreen",
+      params: {
+        classroomId: classroomId as string,
+        assignmentId: assignmentId as string,
+      },
+    });
+  };
+
   return (
     <Modal
       transparent
@@ -35,14 +51,17 @@ const UploadModal: React.FC<UploadModalProps> = ({
 
           <TouchableOpacity
             style={styles.optionButton}
-            onPress={() => onSelectOption("scanner")}
+            onPress={handleScannerPress}
           >
             <Text style={styles.optionText}>Scan and Upload as PDF</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.optionButton}
-            onPress={() => onSelectOption("file")}
+            onPress={() => {
+              onClose();
+              onSelectOption("file");
+            }}
           >
             <Text style={styles.optionText}>Upload from Files</Text>
           </TouchableOpacity>
@@ -65,11 +84,13 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 20,
     alignItems: "center",
+    position: "relative",
   },
   closeButton: {
     position: "absolute",
     top: 10,
     right: 10,
+    zIndex: 1,
   },
   modalTitle: {
     fontSize: 18,
