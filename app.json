@@ -1,10 +1,10 @@
 {
   "expo": {
-    "name": "CloudCampus",
-    "slug": "CloudCampus",
+    "name": "new-app",
+    "slug": "new-app",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/logo.png",
+    "icon": "./assets/images/icon.png",
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -16,7 +16,7 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.anonymous.temppro"
+      "package": "com.akrahul.newapp"
     },
     "web": {
       "bundler": "metro",

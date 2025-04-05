@@ -1,4 +1,4 @@
-package com.anonymous.temppro
+package com.akrahul.newapp
 import expo.modules.splashscreen.SplashScreenManager
 
 import android.os.Build
