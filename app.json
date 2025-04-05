@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "new-app",
-    "slug": "new-app",
+    "name": "CloudCampus",
+    "slug": "CloudCampus",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",

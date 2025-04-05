@@ -21,7 +21,7 @@ extensions.configure(com.facebook.react.ReactSettingsExtension) { ex ->
   }
 }
 
-rootProject.name = 'new-app'
+rootProject.name = 'CloudCampus'
 
 dependencyResolutionManagement {
   versionCatalogs {
