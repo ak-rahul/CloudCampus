@@ -2,10 +2,10 @@ import React, { useState } from 'react';
 import { View, Image, Button, StyleSheet, Text, Alert } from 'react-native';
 import DocumentScanner from 'react-native-document-scanner-plugin';
 import * as FileSystem from 'expo-file-system';
+import RNHTMLtoPDF from 'react-native-html-to-pdf'; // PDF generation
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { getFirestore, collection, addDoc, Timestamp } from 'firebase/firestore';
-
-const FLASK_SERVER_IP = 'http://172.24.80.162:5000'; // Flask server IP
+import { FLASK_SERVER_IP } from "../../constants/constants";
 
 const ScannerScreen = () => {
   const [scannedImage, setScannedImage] = useState<string | null>(null);
@@ -17,7 +17,7 @@ const ScannerScreen = () => {
       const { scannedImages } = await DocumentScanner.scanDocument();
 
       if (scannedImages.length > 0) {
-        setScannedImage(scannedImages[0]); // Show first scanned image
+        setScannedImage(scannedImages[0]); // Show the first scanned image
       } else {
         alert('No image scanned.');
       }
@@ -27,28 +27,45 @@ const ScannerScreen = () => {
     }
   };
 
-  // Function to convert image to PDF and upload it to Flask server
+  // Function to convert the scanned image into a PDF
+  const createPdfFromImage = async (imageUri: string) => {
+    const htmlContent = `
+      <html>
+        <body style="margin:0;padding:0;">
+          <img src="${imageUri}" style="width:100%;" />
+        </body>
+      </html>
+    `;
+
+    const { filePath } = await RNHTMLtoPDF.convert({
+      html: htmlContent,
+      fileName: 'scanned_assignment',
+      base64: false,
+    });
+
+    return filePath!;
+  };
+
+  // Function to send the PDF file to Flask server
   const sendPdfToFlask = async (pdfUri: string) => {
     try {
-      const pdfBase64 = await FileSystem.readAsStringAsync(pdfUri, {
-        encoding: FileSystem.EncodingType.Base64,
-      });
+      const formData = new FormData();
+      formData.append('file', {
+        uri: pdfUri,
+        name: 'assignment.pdf',
+        type: 'application/pdf',
+      } as any);
 
-      // Send the PDF as base64 to Flask server
       const response = await fetch(`${FLASK_SERVER_IP}/upload`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'multipart/form-data',
         },
-        body: JSON.stringify({
-          file: pdfBase64,
-          filename: 'assignment.pdf',
-        }),
+        body: formData,
       });
 
       if (!response.ok) throw new Error('Upload failed');
-
-      const resultText = await response.text(); // Assuming the response is a plain text file
+      const resultText = await response.text();
       return resultText;
     } catch (error) {
       console.error('Error uploading to Flask:', error);
@@ -60,24 +77,20 @@ const ScannerScreen = () => {
   // Function to upload .txt file to Firebase Storage and Firestore
   const uploadTxtToFirebase = async (txtContent: string) => {
     try {
-      // Save .txt file locally
       const txtFilename = `submission_${Date.now()}.txt`;
       const txtUri = FileSystem.documentDirectory + txtFilename;
       await FileSystem.writeAsStringAsync(txtUri, txtContent, {
         encoding: FileSystem.EncodingType.UTF8,
       });
 
-      // Upload to Firebase Storage
       const response = await fetch(txtUri);
       const blob = await response.blob();
       const storage = getStorage();
       const fileRef = ref(storage, `submissions/${txtFilename}`);
       await uploadBytes(fileRef, blob);
 
-      // Get download URL from Firebase
       const downloadURL = await getDownloadURL(fileRef);
 
-      // Store metadata in Firestore
       const db = getFirestore();
       await addDoc(collection(db, 'submissions'), {
         submittedAt: Timestamp.now(),
@@ -102,8 +115,8 @@ const ScannerScreen = () => {
 
     setLoading(true);
     try {
-      // Create PDF from scanned image (use the scanned image to create a PDF here)
-      const pdfUri = await createPdfFromImage(scannedImage); // Replace with actual PDF creation logic
+      // Create PDF from scanned image
+      const pdfUri = await createPdfFromImage(scannedImage);
 
       // Send the PDF to the Flask server and wait for the .txt response
       const resultText = await sendPdfToFlask(pdfUri);
@@ -120,16 +133,6 @@ const ScannerScreen = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  // Dummy function to create a PDF (you should use real logic to create a PDF from the image)
-  const createPdfFromImage = async (imageUri: string) => {
-    // You would replace this with actual PDF creation logic
-    const pdfUri = FileSystem.documentDirectory + 'dummy.pdf';
-    await FileSystem.writeAsStringAsync(pdfUri, 'Dummy PDF content', {
-      encoding: FileSystem.EncodingType.UTF8,
-    });
-    return pdfUri;
   };
 
   return (
