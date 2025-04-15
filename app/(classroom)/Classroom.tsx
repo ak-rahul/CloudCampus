@@ -24,6 +24,7 @@ import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import * as DocumentPicker from 'expo-document-picker';
 import UploadModal from '../../components/UploadModal';
 import AssignmentBox from '../../components/AssignmentBox';
+import AssignmentModal from '../../components/AssignmentModal'; // Import your modal
 
 export default function Classroom() {
   const { id } = useLocalSearchParams();
@@ -34,6 +35,7 @@ export default function Classroom() {
   const [assignments, setAssignments] = useState([]);
   const [submittedAssignments, setSubmittedAssignments] = useState(new Set());
   const [uploadModalVisible, setUploadModalVisible] = useState(false);
+  const [assignmentModalVisible, setAssignmentModalVisible] = useState(false);
   const [selectedAssignmentId, setSelectedAssignmentId] = useState(null);
 
   const db = getFirestore();
@@ -161,12 +163,29 @@ export default function Classroom() {
         </View>
       </ScrollView>
 
+      {/* Floating Action Button */}
+      {isCreator && (
+        <TouchableOpacity
+          style={styles.fab}
+          onPress={() => setAssignmentModalVisible(true)}
+        >
+          <Ionicons name="add" size={28} color="#fff" />
+        </TouchableOpacity>
+      )}
+
+      {/* Modals */}
       <UploadModal
         visible={uploadModalVisible}
         onClose={() => setUploadModalVisible(false)}
         onSelectOption={handleUploadOption}
         classroomId={id}
         assignmentId={selectedAssignmentId}
+      />
+
+      <AssignmentModal
+        visible={assignmentModalVisible}
+        onClose={() => setAssignmentModalVisible(false)}
+        classroomId={id}
       />
     </View>
   );
@@ -183,4 +202,20 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 18, fontWeight: 'bold' },
   noAssignments: { fontSize: 16, color: '#777' },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  fab: {
+    position: 'absolute',
+    bottom: 30,
+    right: 30,
+    backgroundColor: '#007BFF',
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.3,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 4,
+    elevation: 5,
+  },
 });

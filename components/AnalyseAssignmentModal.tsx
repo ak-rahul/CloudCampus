@@ -1,8 +1,12 @@
-import React, { useState, useEffect } from 'react'; 
-import { Modal, View, StyleSheet, TouchableOpacity, ActivityIndicator, FlatList, Text } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import {
+  Modal, View, StyleSheet, TouchableOpacity, ActivityIndicator,
+  FlatList, Text, Alert
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../firebase/firebaseConfig';
+import { COLAB_SERVER_URL } from "../constants/constants";
 
 interface AnalyseAssignmentModalProps {
   visible: boolean;
@@ -21,6 +25,7 @@ const AnalyseAssignmentModal: React.FC<AnalyseAssignmentModalProps> = ({
 }) => {
   const [documents, setDocuments] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [evaluating, setEvaluating] = useState<boolean>(false);
   const assignmentId = assignment["id"];
 
   useEffect(() => {
@@ -28,11 +33,9 @@ const AnalyseAssignmentModal: React.FC<AnalyseAssignmentModalProps> = ({
       try {
         const querySnapshot = await getDocs(collection(db, assignmentId));
         const docs: any[] = [];
-        
         querySnapshot.forEach((doc) => {
           docs.push({ id: doc.id, ...doc.data() });
         });
-
         setDocuments(docs);
       } catch (error) {
         console.error('Error fetching documents: ', error);
@@ -52,34 +55,68 @@ const AnalyseAssignmentModal: React.FC<AnalyseAssignmentModalProps> = ({
     return date.toLocaleString();
   };
 
-  const renderMetaData = (metaDoc: any) => {
-    return (
-      <View key={metaDoc.id} style={styles.card}>
-        <Text style={styles.cardTitle}>Meta Data</Text>
-        <Text>Assignment ID: {metaDoc.assignmentId}</Text>
-        <Text>Classroom ID: {metaDoc.classroomId}</Text>
-        <Text>Created At: {formatDate(metaDoc.createdAt)}</Text>
-      </View>
+  const handleEvaluateAll = async () => {
+    const filteredDocs = documents.filter(
+      doc => doc.id !== 'meta' && doc.email && doc.content
     );
+
+    try {
+      setEvaluating(true);
+
+      const payload = filteredDocs.map(doc => ({
+        email: doc.email,
+        text: doc.content,
+      }));
+
+      const response = await fetch(`${COLAB_SERVER_URL}/check-plagiarism`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ files: payload }),
+      });
+
+      const result = await response.json();
+      console.log("Plagiarism Results:", result);
+
+      if (!Array.isArray(result) || result.length === 0) {
+        Alert.alert("Evaluation Complete", "No plagiarism detected.");
+      } else {
+        const message = result.map(res =>
+          `${res.email} is ${res.status} with ${res.with}\nSimilarity: ${res.percentage}%`
+        ).join('\n\n');
+        Alert.alert("Plagiarism Results", message);
+      }
+    } catch (error) {
+      console.error("Evaluation error:", error);
+      Alert.alert("Error", "Failed to evaluate submissions.");
+    } finally {
+      setEvaluating(false);
+    }
   };
 
-  const renderOtherDocuments = ({ item }: { item: any }) => {
-    return (
-      <View key={item.id} style={styles.tableRow}>
-        <View style={styles.tableCellContainer}>
-          <Text style={styles.tableCell}>{item.email}</Text>
-        </View>
-        <View style={styles.tableCellContainer}>
-          <Text style={styles.tableCell}>
-            {item.submittedAt ? formatDate(item.submittedAt) : 'N/A'}
-          </Text>
-        </View>
+  const renderMetaData = (metaDoc: any) => (
+    <View key={metaDoc.id} style={styles.card}>
+      <Text style={styles.cardTitle}>Meta Data</Text>
+      <Text>Assignment ID: {metaDoc.assignmentId}</Text>
+      <Text>Classroom ID: {metaDoc.classroomId}</Text>
+      <Text>Created At: {formatDate(metaDoc.createdAt)}</Text>
+    </View>
+  );
+
+  const renderOtherDocuments = ({ item }: { item: any }) => (
+    <View key={item.id} style={styles.tableRow}>
+      <View style={styles.tableCellContainer}>
+        <Text style={styles.tableCell}>{item.email}</Text>
       </View>
-    );
-  };
+      <View style={styles.tableCellContainer}>
+        <Text style={styles.tableCell}>
+          {item.submittedAt ? formatDate(item.submittedAt) : 'N/A'}
+        </Text>
+      </View>
+    </View>
+  );
 
   const renderContent = () => {
-    if (isLoading) {
+    if (isLoading || loading) {
       return <ActivityIndicator size="large" color="#007BFF" />;
     }
 
@@ -89,7 +126,6 @@ const AnalyseAssignmentModal: React.FC<AnalyseAssignmentModalProps> = ({
 
     const metaDoc = documents.find(doc => doc.id === 'meta');
     const filteredDocuments = documents.filter(doc => doc.id !== 'meta');
-
     const anyPastDue = filteredDocuments.some(doc => doc.submittedAt?.seconds * 1000 < Date.now());
 
     return (
@@ -103,8 +139,14 @@ const AnalyseAssignmentModal: React.FC<AnalyseAssignmentModalProps> = ({
         />
 
         {anyPastDue && (
-          <TouchableOpacity style={styles.evaluateAllButton}>
-            <Text style={styles.evaluateAllButtonText}>Evaluate All</Text>
+          <TouchableOpacity
+            style={[styles.evaluateAllButton, evaluating && { opacity: 0.6 }]}
+            onPress={handleEvaluateAll}
+            disabled={evaluating}
+          >
+            <Text style={styles.evaluateAllButtonText}>
+              {evaluating ? 'Evaluating...' : 'Evaluate All'}
+            </Text>
           </TouchableOpacity>
         )}
       </>
@@ -117,7 +159,6 @@ const AnalyseAssignmentModal: React.FC<AnalyseAssignmentModalProps> = ({
         <TouchableOpacity onPress={onClose} style={styles.closeButton}>
           <Ionicons name="close-circle" size={30} color="red" />
         </TouchableOpacity>
-
         {renderContent()}
       </View>
     </Modal>

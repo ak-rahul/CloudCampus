@@ -11,7 +11,6 @@ import {
 import Icon from "react-native-vector-icons/MaterialIcons";
 import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "expo-file-system";
-import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import {
   getFirestore,
   setDoc,
@@ -56,9 +55,9 @@ const UploadModal: React.FC<UploadModalProps> = ({
       const fileUri = result.assets[0].uri;
       setLoading(true);
 
-      const txtUri = await sendPdfToColab(fileUri);
-      if (txtUri) {
-        await uploadTxtToFirebase(txtUri);
+      const textContent = await sendPdfToColab(fileUri);
+      if (textContent) {
+        await uploadTextToFirestore(textContent);
         setSubmitted(true);
       } else {
         Alert.alert("Server Error", "Failed to receive processed text.");
@@ -99,13 +98,7 @@ const UploadModal: React.FC<UploadModalProps> = ({
         return null;
       }
 
-      const txtPath = FileSystem.documentDirectory + "handwritten_result.txt";
-
-      await FileSystem.writeAsStringAsync(txtPath, textContent, {
-        encoding: FileSystem.EncodingType.UTF8,
-      });
-
-      return txtPath;
+      return textContent;
     } catch (err) {
       console.error("Colab upload error:", err);
       Alert.alert("Processing Error", "Failed to process the PDF.");
@@ -113,54 +106,43 @@ const UploadModal: React.FC<UploadModalProps> = ({
     }
   };
 
-  const uploadTxtToFirebase = async (txtUri: string) => {
+  const uploadTextToFirestore = async (textContent: string) => {
     try {
-      const response = await fetch(txtUri);
-      const blob = await response.blob();
-      const fileName = `submission_${Date.now()}.txt`;
-  
-      const storage = getStorage();
-      const fileRef = ref(storage, `submissions/${fileName}`);
-      await uploadBytes(fileRef, blob);
-      const downloadURL = await getDownloadURL(fileRef);
-  
       if (!classroomId || !assignmentId) {
         Alert.alert("Missing Parameters", "Classroom ID or Assignment ID is missing.");
         return;
       }
-  
+
       const auth = getAuth();
       const currentUser = auth.currentUser;
-  
+
       if (!currentUser || !currentUser.email) {
         Alert.alert("Authentication Error", "User not logged in.");
         return;
       }
-  
+
       const db = getFirestore();
-  
-      // 🔥 assignmentId is the collection name, user's email is the doc ID
+
       const submissionRef = doc(db, assignmentId, currentUser.email);
-  
+
       await setDoc(submissionRef, {
         email: currentUser.email,
         submittedAt: Timestamp.now(),
         classroomId,
         assignmentId,
-        downloadURL,
+        content: textContent,
       });
-  
+
       Alert.alert("Success", "File submitted successfully.", [
         {
           text: "OK",
         },
       ]);
     } catch (error) {
-      console.error("Firebase Upload Error:", error);
-      Alert.alert("Error", "Failed to upload to Firebase.");
+      console.error("Firestore Upload Error:", error);
+      Alert.alert("Error", "Failed to upload text to Firestore.");
     }
   };
-  
 
   const handleScannerPress = () => {
     onClose();

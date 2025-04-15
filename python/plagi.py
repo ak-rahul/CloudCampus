@@ -1,17 +1,23 @@
-import os
+from flask import Flask, request, jsonify
 import nltk
 from nltk.corpus import wordnet as wn
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
 from nltk.stem import WordNetLemmatizer
 from nltk.tokenize import word_tokenize
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+from flask_cors import CORS
+
+nltk.download('punkt')
+nltk.download('wordnet')
+
+app = Flask(__name__)
+CORS(app)  # Consider specifying origins if necessary
 
 lemmatizer = WordNetLemmatizer()
 
 def lemmatize_text(text):
     tokens = word_tokenize(text)
-    lemmatized_tokens = [lemmatizer.lemmatize(word.lower()) for word in tokens]
-    return ' '.join(lemmatized_tokens)
+    return ' '.join([lemmatizer.lemmatize(word.lower()) for word in tokens])
 
 def synonym_replacement(text):
     tokens = word_tokenize(text)
@@ -20,21 +26,18 @@ def synonym_replacement(text):
         synsets = wn.synsets(word)
         if synsets:
             synonyms = synsets[0].lemmas()
-            if synonyms:
-                new_tokens.append(synonyms[0].name()) 
-            else:
-                new_tokens.append(word)
+            new_tokens.append(synonyms[0].name() if synonyms else word)
         else:
             new_tokens.append(word)
     return ' '.join(new_tokens)
 
-def vectorize(Text):
-    lemmatized_texts = [lemmatize_text(text) for text in Text]
-    synonym_texts = [synonym_replacement(text) for text in lemmatized_texts]
-    return TfidfVectorizer().fit_transform(synonym_texts).toarray()
+def vectorize(texts):
+    lemmatized = [lemmatize_text(t) for t in texts]
+    synonymed = [synonym_replacement(t) for t in lemmatized]
+    return TfidfVectorizer().fit_transform(synonymed).toarray()
 
 def similarity(doc1, doc2):
-    return cosine_similarity([doc1, doc2])
+    return cosine_similarity([doc1, doc2])[0][1]
 
 def classify_similarity(score):
     if score >= 0.95:
@@ -46,26 +49,47 @@ def classify_similarity(score):
     else:
         return "No Plagiarism"
 
-student_files = [doc for doc in os.listdir() if doc.endswith('.txt')]
-student_notes = [open(_file, encoding='utf-8').read() for _file in student_files]
-
-vectors = vectorize(student_notes)
-s_vectors = list(zip(student_files, vectors))
-plagiarism_results = set()
-
+@app.route('/check-plagiarism', methods=['POST'])
 def check_plagiarism():
-    global s_vectors
-    for student_a, text_vector_a in s_vectors:
-        new_vectors = s_vectors.copy()
-        current_index = new_vectors.index((student_a, text_vector_a))
-        del new_vectors[current_index]
-        for student_b, text_vector_b in new_vectors:
-            sim_score = similarity(text_vector_a, text_vector_b)[0][1]
-            label = classify_similarity(sim_score)
-            student_pair = sorted((student_a, student_b))
-            score = (student_pair[0], student_pair[1], sim_score, label)
-            plagiarism_results.add(score)
-    return plagiarism_results
+    try:
+        data = request.json
+        files = data.get('files', [])
 
-for data in check_plagiarism():
-    print(f"{data[0]} - {data[1]}: {round(float(data[2]), 4)} -> {data[3]}")
+        if not files:
+            return jsonify({"error": "No files provided"}), 400
+
+        texts = [file['text'] for file in files]
+        emails = [file['email'] for file in files]
+
+        # Log all emails and texts clearly
+        print("\n==== Received Data ====")
+        for i, (email, text) in enumerate(zip(emails, texts)):
+            print(f"\n--- Document {i+1} ---")
+            print(f"Email: {email}")
+            print(f"Text:\n{text}\n")
+
+        if len(texts) != len(emails):
+            return jsonify({"error": "Mismatch between texts and emails"}), 400
+
+        vectors = vectorize(texts)
+        results = []
+
+        for i in range(len(vectors)):
+            for j in range(i + 1, len(vectors)):
+                score = similarity(vectors[i], vectors[j])
+                result = {
+                    "email": emails[i],
+                    "with": emails[j],
+                    "percentage": round(score * 100, 2),
+                    "status": classify_similarity(score)
+                }
+                results.append(result)
+
+        return jsonify(results)
+
+    except Exception as e:
+        print(f"Error: {str(e)}")
+        return jsonify({"error": "An error occurred while processing the request"}), 500
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)
