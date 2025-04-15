@@ -7,7 +7,7 @@ import { db } from '../firebase/firebaseConfig';
 interface AnalyseAssignmentModalProps {
   visible: boolean;
   onClose: () => void;
-  assignment: any; // Replace with more specific type if available
+  assignment: any;
   classroomId: string;
   loading?: boolean;
 }
@@ -66,10 +66,14 @@ const AnalyseAssignmentModal: React.FC<AnalyseAssignmentModalProps> = ({
   const renderOtherDocuments = ({ item }: { item: any }) => {
     return (
       <View key={item.id} style={styles.tableRow}>
-        <Text style={styles.tableCell}>{item.email}</Text>
-        <Text style={styles.tableCell}>
-          {item.submittedAt ? formatDate(item.submittedAt) : 'N/A'}
-        </Text>
+        <View style={styles.tableCellContainer}>
+          <Text style={styles.tableCell}>{item.email}</Text>
+        </View>
+        <View style={styles.tableCellContainer}>
+          <Text style={styles.tableCell}>
+            {item.submittedAt ? formatDate(item.submittedAt) : 'N/A'}
+          </Text>
+        </View>
       </View>
     );
   };
@@ -84,15 +88,26 @@ const AnalyseAssignmentModal: React.FC<AnalyseAssignmentModalProps> = ({
     }
 
     const metaDoc = documents.find(doc => doc.id === 'meta');
+    const filteredDocuments = documents.filter(doc => doc.id !== 'meta');
 
-    const filteredDocuments = documents.filter(doc => doc.id !== 'meta'); // Filter out meta doc
+    const anyPastDue = filteredDocuments.some(doc => doc.submittedAt?.seconds * 1000 < Date.now());
 
     return (
-      <FlatList
-        data={[metaDoc, ...filteredDocuments]} // Render meta data first, followed by the rest of the docs
-        renderItem={({ item }) => item.id === 'meta' ? renderMetaData(item) : renderOtherDocuments({ item })}
-        keyExtractor={(item) => item.id}
-      />
+      <>
+        <FlatList
+          data={[metaDoc, ...filteredDocuments]}
+          renderItem={({ item }) =>
+            item.id === 'meta' ? renderMetaData(item) : renderOtherDocuments({ item })
+          }
+          keyExtractor={(item) => item.id}
+        />
+
+        {anyPastDue && (
+          <TouchableOpacity style={styles.evaluateAllButton}>
+            <Text style={styles.evaluateAllButtonText}>Evaluate All</Text>
+          </TouchableOpacity>
+        )}
+      </>
     );
   };
 
@@ -114,13 +129,13 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 20,
     backgroundColor: 'white',
-    paddingTop: 50, // Make sure the content is not covered by the button
+    paddingTop: 50,
   },
   closeButton: {
     position: 'absolute',
-    top: 20, // Position close button 20px from the top
+    top: 20,
     right: 10,
-    zIndex: 100, // Ensure button stays above the content
+    zIndex: 100,
   },
   card: {
     marginBottom: 15,
@@ -136,19 +151,35 @@ const styles = StyleSheet.create({
   },
   tableRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     paddingVertical: 10,
     borderBottomWidth: 1,
     borderColor: '#ddd',
   },
-  tableCell: {
+  tableCellContainer: {
     flex: 1,
+  },
+  tableCell: {
     fontSize: 16,
   },
   noDataText: {
     fontSize: 16,
     color: 'gray',
     textAlign: 'center',
-  }
+    marginTop: 20,
+  },
+  evaluateAllButton: {
+    backgroundColor: '#28a745',
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginTop: 20,
+    alignItems: 'center',
+  },
+  evaluateAllButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
 });
 
 export default AnalyseAssignmentModal;
