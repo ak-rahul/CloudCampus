@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Animated, ActivityIndicator } from 'react-native';
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import { auth, firestore } from '../../firebase/firebaseConfig';
+import { auth, db } from '../../firebase/firebaseConfig';
 import { doc, setDoc } from 'firebase/firestore';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from "expo-router";
@@ -37,6 +37,11 @@ export default function SignUp() {
       return;
     }
 
+    if (!email.includes('@')) {
+      Alert.alert('Error', 'Please enter a valid email!');
+      return;
+    }
+
     setIsLoading(true);
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
@@ -51,7 +56,7 @@ export default function SignUp() {
         joinedClassrooms: role === "student" ? [] : null,
       };
 
-      await setDoc(doc(firestore, "user-info", user.uid), userData);
+      await setDoc(doc(db, "user-info", user.uid), userData);
 
       router.push({ pathname: "/(auth)/SelectAvatar", params: { uid: user.uid } });
     } catch (error) {
@@ -66,10 +71,7 @@ export default function SignUp() {
     <TouchableOpacity
       activeOpacity={0.9}
       onPress={() => setRole(value)}
-      style={[
-        styles.roleButton,
-        role === value && styles.roleButtonSelected,
-      ]}
+      style={[styles.roleButton, role === value && styles.roleButtonSelected]}
     >
       <LinearGradient
         colors={role === value ? ['#007BFF', '#0056b3'] : ['#f2f2f2', '#d9d9d9']}
@@ -116,7 +118,6 @@ const styles = StyleSheet.create({
   formContainer: { paddingHorizontal: 20 },
   title: { fontSize: 28, marginBottom: 20, textAlign: 'center', fontWeight: '600' },
   input: { borderWidth: 1, marginBottom: 15, borderColor: '#ccc', borderRadius: 8, padding: 10 },
-  radioTitle: { fontSize: 16, textAlign: 'center', marginBottom: 10 },
   radioGroup: { flexDirection: 'row', justifyContent: 'center', gap: 20 },
   roleButton: { borderRadius: 10, overflow: 'hidden', width: 140, height: 80 },
   roleButtonSelected: { elevation: 5, shadowColor: '#007BFF' },

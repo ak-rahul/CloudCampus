@@ -77,11 +77,11 @@ const AnalyseAssignmentModal: React.FC<AnalyseAssignmentModalProps> = ({
       const result = await response.json();
       console.log("Plagiarism Results:", result);
 
-      if (!Array.isArray(result) || result.length === 0) {
+      if (!Array.isArray(result.results) || result.results.length === 0) {
         Alert.alert("Evaluation Complete", "No plagiarism detected.");
       } else {
-        const message = result.map(res =>
-          `${res.email} is ${res.status} with ${res.with}\nSimilarity: ${res.percentage}%`
+        const message = result.results.map((res: any) =>
+          `${res.studentA} and ${res.studentB} have a ${res.classification} \nSimilarity: ${res.similarity * 100}%`
         ).join('\n\n');
         Alert.alert("Plagiarism Results", message);
       }

@@ -9,7 +9,7 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
-import { auth, firestore } from '../../firebase/firebaseConfig';
+import { auth, db } from '../../firebase/firebaseConfig';
 import {
   collection,
   addDoc,
@@ -67,7 +67,7 @@ export default function CreateClassroom() {
     setIsLoading(true);
     try {
       const classroomCode = generateClassroomCode(user.email.split('@')[0]);
-      const classroomRef = await addDoc(collection(firestore, 'classrooms'), {
+      const classroomRef = await addDoc(collection(db, 'classrooms'), {
         name: className,
         emails: validEmails,
         code: classroomCode,
@@ -75,7 +75,7 @@ export default function CreateClassroom() {
         createdAt: new Date(),
       });
 
-      const userRef = doc(firestore, 'user-info', user.uid);
+      const userRef = doc(db, 'user-info', user.uid);
       await updateDoc(userRef, {
         role: 'teacher',
         classrooms: arrayUnion(classroomCode),
@@ -85,7 +85,7 @@ export default function CreateClassroom() {
       validEmails.forEach(async (email) => {
         try {
           const userNotificationsRef = collection(
-            firestore,
+             db,
             'notifications',
             email,
             'messages'

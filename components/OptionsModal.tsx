@@ -9,7 +9,7 @@ import {
   Alert,
 } from "react-native";
 import Icon from "react-native-vector-icons/MaterialIcons";
-import { firestore, auth } from "../firebase/firebaseConfig";
+import { db, auth } from "../firebase/firebaseConfig";
 import { doc, getDoc } from "firebase/firestore";
 
 interface OptionsModalProps {
@@ -40,12 +40,12 @@ const OptionsModal: React.FC<OptionsModalProps> = ({
       }
 
       try {
-        const userRef = doc(firestore, "user-info", user.uid);
+        const userRef = doc(db, "user-info", user.uid);
         const userDoc = await getDoc(userRef);
 
         if (userDoc.exists()) {
           const userData = userDoc.data();
-          setRole(userData?.role || "unknown");
+          setRole(userData?.role || "unknown"); // Set role to 'unknown' if not found
         } else {
           console.error("User document not found.");
           setRole("unknown");
@@ -53,6 +53,7 @@ const OptionsModal: React.FC<OptionsModalProps> = ({
       } catch (error) {
         console.error("Error fetching user role:", error);
         Alert.alert("Error", "Failed to fetch user role.");
+        setRole("unknown"); // Set to 'unknown' if error occurs
       } finally {
         setLoading(false);
       }
