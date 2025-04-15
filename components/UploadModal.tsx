@@ -12,8 +12,14 @@ import Icon from "react-native-vector-icons/MaterialIcons";
 import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "expo-file-system";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { getFirestore, collection, addDoc, Timestamp } from "firebase/firestore";
-import { useRouter, useLocalSearchParams } from "expo-router";
+import {
+  getFirestore,
+  setDoc,
+  doc,
+  Timestamp,
+} from "firebase/firestore";
+import { getAuth } from "firebase/auth";
+import { useRouter } from "expo-router";
 
 import { COLAB_SERVER_URL } from "../constants/constants";
 
@@ -21,16 +27,20 @@ interface UploadModalProps {
   visible: boolean;
   onClose: () => void;
   onSelectOption: (option: "file") => void;
+  classroomId: string;
+  assignmentId: string;
 }
 
 const UploadModal: React.FC<UploadModalProps> = ({
   visible,
   onClose,
   onSelectOption,
+  classroomId,
+  assignmentId,
 }) => {
   const router = useRouter();
-  const { classroomId, assignmentId } = useLocalSearchParams();
   const [loading, setLoading] = useState<boolean>(false);
+  const [submitted, setSubmitted] = useState<boolean>(false);
 
   const handleFilePress = async () => {
     try {
@@ -38,16 +48,18 @@ const UploadModal: React.FC<UploadModalProps> = ({
         type: "application/pdf",
       });
 
-      if (result.canceled || !result.assets?.[0]?.uri) return;
+      if (result.canceled || !result.assets?.[0]?.uri) {
+        Alert.alert("Action Canceled", "No valid file was selected.");
+        return;
+      }
 
       const fileUri = result.assets[0].uri;
-      console.log("Selected file URI:", fileUri);
-
       setLoading(true);
 
       const txtUri = await sendPdfToColab(fileUri);
       if (txtUri) {
         await uploadTxtToFirebase(txtUri);
+        setSubmitted(true);
       } else {
         Alert.alert("Server Error", "Failed to receive processed text.");
       }
@@ -81,7 +93,12 @@ const UploadModal: React.FC<UploadModalProps> = ({
 
       if (!response.ok) throw new Error("Failed to receive response from server");
 
-      const textContent = await response.text(); // ✅ FIX: get text directly
+      const textContent = await response.text();
+      if (!textContent) {
+        Alert.alert("Processing Error", "Received empty content from server.");
+        return null;
+      }
+
       const txtPath = FileSystem.documentDirectory + "handwritten_result.txt";
 
       await FileSystem.writeAsStringAsync(txtPath, textContent, {
@@ -91,6 +108,7 @@ const UploadModal: React.FC<UploadModalProps> = ({
       return txtPath;
     } catch (err) {
       console.error("Colab upload error:", err);
+      Alert.alert("Processing Error", "Failed to process the PDF.");
       return null;
     }
   };
@@ -100,36 +118,58 @@ const UploadModal: React.FC<UploadModalProps> = ({
       const response = await fetch(txtUri);
       const blob = await response.blob();
       const fileName = `submission_${Date.now()}.txt`;
-
+  
       const storage = getStorage();
       const fileRef = ref(storage, `submissions/${fileName}`);
       await uploadBytes(fileRef, blob);
       const downloadURL = await getDownloadURL(fileRef);
-
+  
+      if (!classroomId || !assignmentId) {
+        Alert.alert("Missing Parameters", "Classroom ID or Assignment ID is missing.");
+        return;
+      }
+  
+      const auth = getAuth();
+      const currentUser = auth.currentUser;
+  
+      if (!currentUser || !currentUser.email) {
+        Alert.alert("Authentication Error", "User not logged in.");
+        return;
+      }
+  
       const db = getFirestore();
-      await addDoc(collection(db, "submissions"), {
+      const submissionRef = doc(db, assignmentId, currentUser.email);
+  
+      await setDoc(submissionRef, {
+        email: currentUser.email,
         submittedAt: Timestamp.now(),
-        fileUrl: downloadURL,
-        fileName,
-        fileType: "text/plain",
         classroomId,
         assignmentId,
+        downloadURL,
       });
-
-      Alert.alert("Success", "Text file submitted successfully.");
+  
+      Alert.alert("Success", "File submitted successfully.", [
+        {
+          text: "OK",
+          onPress: () => {
+            router.push(`/classroom/${classroomId}`);
+          },
+        },
+      ]);
     } catch (error) {
       console.error("Firebase Upload Error:", error);
       Alert.alert("Error", "Failed to upload to Firebase.");
     }
   };
+  
 
   const handleScannerPress = () => {
     onClose();
     router.push({
       pathname: "/(scanner)/ScannerScreen",
       params: {
-        classroomId: classroomId as string,
-        assignmentId: assignmentId as string,
+        classroomId,
+        assignmentId,
       },
     });
   };
@@ -143,13 +183,29 @@ const UploadModal: React.FC<UploadModalProps> = ({
           </TouchableOpacity>
           <Text style={styles.modalTitle}>Upload Assignment</Text>
 
-          <TouchableOpacity style={styles.optionButton} onPress={handleScannerPress}>
-            <Text style={styles.optionText}>Scan and Upload as PDF</Text>
-          </TouchableOpacity>
+          {submitted ? (
+            <Text style={styles.submissionMessage}>
+              You have already submitted your file.
+            </Text>
+          ) : (
+            <>
+              <TouchableOpacity
+                style={styles.optionButton}
+                onPress={handleScannerPress}
+                disabled={loading}
+              >
+                <Text style={styles.optionText}>Scan and Upload as PDF</Text>
+              </TouchableOpacity>
 
-          <TouchableOpacity style={styles.optionButton} onPress={handleFilePress}>
-            <Text style={styles.optionText}>Upload from Files</Text>
-          </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.optionButton}
+                onPress={handleFilePress}
+                disabled={loading}
+              >
+                <Text style={styles.optionText}>Upload from Files</Text>
+              </TouchableOpacity>
+            </>
+          )}
 
           {loading && (
             <View style={styles.loadingOverlay}>
@@ -199,6 +255,11 @@ const styles = StyleSheet.create({
   optionText: {
     color: "#fff",
     fontSize: 16,
+  },
+  submissionMessage: {
+    fontSize: 16,
+    color: "green",
+    marginBottom: 20,
   },
   loadingOverlay: {
     position: "absolute",

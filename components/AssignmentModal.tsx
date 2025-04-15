@@ -11,7 +11,14 @@ import {
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import Icon from "react-native-vector-icons/MaterialIcons";
-import { getFirestore, collection, addDoc, Timestamp } from "firebase/firestore";
+import {
+  getFirestore,
+  collection,
+  addDoc,
+  Timestamp,
+  doc,
+  setDoc,
+} from "firebase/firestore";
 
 interface AssignmentModalProps {
   visible: boolean;
@@ -39,21 +46,34 @@ const AssignmentModal: React.FC<AssignmentModalProps> = ({
     }
 
     try {
-      await addDoc(collection(db, "classrooms", classroomId, "assignments"), {
-        title,
-        description,
-        dueDate: dueDate ? Timestamp.fromDate(dueDate) : null,
+      // Step 1: Create the assignment inside the classroom
+      const assignmentRef = await addDoc(
+        collection(db, "classrooms", classroomId, "assignments"),
+        {
+          title,
+          description,
+          dueDate: dueDate ? Timestamp.fromDate(dueDate) : null,
+          createdAt: Timestamp.now(),
+        }
+      );
+
+      const assignmentId = assignmentRef.id;
+
+      // Step 2: Create a new top-level collection named after the assignmentId with a metadata doc
+      await setDoc(doc(db, assignmentId, "meta"), {
+        assignmentId,
+        classroomId,
         createdAt: Timestamp.now(),
       });
 
-      Alert.alert("Success", "Assignment created successfully!");
+      Alert.alert("Success", "Assignment and collection created!");
       setTitle("");
       setDescription("");
       setDueDate(null);
       onClose();
     } catch (error) {
-      console.error("Error creating assignment:", error);
-      Alert.alert("Error", "Failed to create assignment.");
+      console.error("Error creating assignment or collection:", error);
+      Alert.alert("Error", "Failed to create assignment or collection.");
     }
   };
 

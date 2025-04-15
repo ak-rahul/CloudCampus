@@ -15,8 +15,9 @@ import {
   getDoc,
   collection,
   onSnapshot,
-  Timestamp,
+  getDocs,
   setDoc,
+  Timestamp,
 } from 'firebase/firestore';
 import { Ionicons } from '@expo/vector-icons';
 import { getAuth } from 'firebase/auth';
@@ -34,7 +35,6 @@ export default function Classroom() {
   const [showModal, setShowModal] = useState(false);
   const [assignments, setAssignments] = useState<any[]>([]);
   const [submittedAssignments, setSubmittedAssignments] = useState<Set<string>>(new Set());
-
   const [uploadModalVisible, setUploadModalVisible] = useState(false); // ✅ NEW
   const [selectedAssignmentId, setSelectedAssignmentId] = useState<string | null>(null); // ✅ NEW
 
@@ -77,18 +77,11 @@ export default function Classroom() {
           const submittedSet = new Set<string>();
 
           for (const docSnap of snapshot.docs) {
-            const submissionRef = doc(
-              db,
-              'classrooms',
-              id as string,
-              'assignments',
-              docSnap.id,
-              'submissions',
-              currentUser.uid
-            );
+            const assignmentId = docSnap.id;
+            const submissionRef = doc(db, assignmentId, currentUser.email);
             const submissionDoc = await getDoc(submissionRef);
             if (submissionDoc.exists()) {
-              submittedSet.add(docSnap.id);
+              submittedSet.add(assignmentId);
             }
           }
 
@@ -141,12 +134,8 @@ export default function Classroom() {
 
         const submissionRef = doc(
           db,
-          'classrooms',
-          id as string,
-          'assignments',
-          selectedAssignmentId,
-          'submissions',
-          auth.currentUser?.uid!
+          selectedAssignmentId, // assignment ID as collection name
+          auth.currentUser?.email! // user ID as document ID
         );
 
         await setDoc(submissionRef, {
@@ -243,7 +232,11 @@ export default function Classroom() {
                     </Text>
                   )}
 
-                  {canSubmit && !isSubmitted && (
+                  {isSubmitted ? (
+                    <Text style={{ marginTop: 8, color: '#4caf50', fontWeight: 'bold' }}>
+                      Submitted
+                    </Text>
+                  ) : canSubmit ? (
                     <TouchableOpacity
                       style={styles.uploadButton}
                       onPress={() => openUploadModal(assignment.id)}
@@ -251,11 +244,9 @@ export default function Classroom() {
                       <Ionicons name="cloud-upload-outline" size={18} color="#fff" />
                       <Text style={styles.uploadText}>Upload Document</Text>
                     </TouchableOpacity>
-                  )}
-
-                  {canSubmit && isSubmitted && (
-                    <Text style={{ marginTop: 8, color: '#4caf50', fontWeight: 'bold' }}>
-                      Document Submitted
+                  ) : (
+                    <Text style={{ marginTop: 8, color: '#d32f2f', fontWeight: 'bold' }}>
+                      Submission Closed
                     </Text>
                   )}
                 </View>
@@ -278,11 +269,12 @@ export default function Classroom() {
         classroomId={id as string}
       />
 
-      {/* ✅ Upload Modal */}
       <UploadModal
         visible={uploadModalVisible}
         onClose={() => setUploadModalVisible(false)}
         onSelectOption={handleUploadOption}
+        classroomId={id as string} // classroom ID
+        assignmentId={selectedAssignmentId} // assignment ID
       />
     </View>
   );
@@ -316,98 +308,90 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
   classSubtitle: {
-    fontSize: 16,
-    color: '#e0e0e0',
+    fontSize: 14,
+    color: '#fff',
     marginTop: 4,
   },
   infoSection: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
     marginBottom: 20,
   },
   infoCard: {
-    flex: 1,
     backgroundColor: '#fff',
+    padding: 16,
     borderRadius: 12,
-    padding: 12,
-    marginHorizontal: 4,
-    elevation: 2,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 1,
   },
   infoTitle: {
-    fontSize: 14,
-    color: '#888',
-    marginBottom: 4,
+    fontWeight: 'bold',
+    color: '#555',
   },
   infoValue: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
+    color: '#000',
   },
   assignmentSection: {
-    marginBottom: 80,
+    marginBottom: 20,
   },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 12,
     color: '#333',
   },
   noAssignments: {
-    fontSize: 16,
     color: '#999',
-    textAlign: 'center',
-    marginTop: 10,
+    fontStyle: 'italic',
   },
   assignmentCard: {
     backgroundColor: '#fff',
     padding: 16,
     borderRadius: 12,
     marginBottom: 12,
-    elevation: 2,
   },
   assignmentTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
-    marginBottom: 4,
-    color: '#007BFF',
+    color: '#222',
   },
   assignmentDescription: {
-    fontSize: 14,
-    color: '#555',
-    marginBottom: 6,
+    marginTop: 6,
+    color: '#444',
   },
   assignmentDueDate: {
-    fontSize: 13,
+    marginTop: 6,
     color: '#d32f2f',
   },
   uploadButton: {
-    marginTop: 10,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#007BFF',
-    padding: 10,
-    borderRadius: 8,
+    backgroundColor: '#4caf50',
+    padding: 8,
+    borderRadius: 6,
+    marginTop: 10,
   },
   uploadText: {
     color: '#fff',
-    marginLeft: 8,
-    fontWeight: 'bold',
+    marginLeft: 6,
   },
   fabContainer: {
     position: 'absolute',
-    bottom: 20,
+    bottom: 30,
     right: 20,
     backgroundColor: '#007BFF',
-    flexDirection: 'row',
-    alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 30,
-    elevation: 5,
+    flexDirection: 'row',
+    alignItems: 'center',
+    elevation: 4,
   },
   fabText: {
     color: '#fff',
-    fontWeight: 'bold',
     marginLeft: 8,
+    fontWeight: 'bold',
   },
 });
