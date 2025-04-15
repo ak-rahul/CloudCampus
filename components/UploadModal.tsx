@@ -151,9 +151,6 @@ const UploadModal: React.FC<UploadModalProps> = ({
       Alert.alert("Success", "File submitted successfully.", [
         {
           text: "OK",
-          onPress: () => {
-            router.push(`/classroom/${classroomId}`);
-          },
         },
       ]);
     } catch (error) {

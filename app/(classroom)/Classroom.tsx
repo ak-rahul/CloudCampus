@@ -24,7 +24,7 @@ import { getAuth } from 'firebase/auth';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import * as DocumentPicker from 'expo-document-picker';
 import AssignmentModal from '../../components/AssignmentModal';
-import UploadModal from '../../components/UploadModal'; // ✅ NEW
+import UploadModal from '../../components/UploadModal';
 
 export default function Classroom() {
   const { id } = useLocalSearchParams();
@@ -35,8 +35,8 @@ export default function Classroom() {
   const [showModal, setShowModal] = useState(false);
   const [assignments, setAssignments] = useState<any[]>([]);
   const [submittedAssignments, setSubmittedAssignments] = useState<Set<string>>(new Set());
-  const [uploadModalVisible, setUploadModalVisible] = useState(false); // ✅ NEW
-  const [selectedAssignmentId, setSelectedAssignmentId] = useState<string | null>(null); // ✅ NEW
+  const [uploadModalVisible, setUploadModalVisible] = useState(false);
+  const [selectedAssignmentId, setSelectedAssignmentId] = useState<string | null>(null);
 
   const db = getFirestore();
   const auth = getAuth();
@@ -104,6 +104,10 @@ export default function Classroom() {
     setUploadModalVisible(true);
   };
 
+  const openAnalyseAssignmentPage = (assignmentId: string) => {
+    router.push(`/analyse-assignment?id=${assignmentId}&classroomId=${id}`);
+  };
+
   const handleUploadOption = async (option: 'scanner' | 'file') => {
     setUploadModalVisible(false);
     if (!selectedAssignmentId) return;
@@ -134,8 +138,8 @@ export default function Classroom() {
 
         const submissionRef = doc(
           db,
-          selectedAssignmentId, // assignment ID as collection name
-          auth.currentUser?.email! // user ID as document ID
+          selectedAssignmentId,
+          auth.currentUser?.email!
         );
 
         await setDoc(submissionRef, {
@@ -249,6 +253,16 @@ export default function Classroom() {
                       Submission Closed
                     </Text>
                   )}
+
+                  {isCreator && (
+                    <TouchableOpacity
+                      style={styles.analyseButton}
+                      onPress={() => openAnalyseAssignmentPage(assignment.id)}
+                    >
+                      <Ionicons name="analytics-outline" size={18} color="#fff" />
+                      <Text style={styles.analyseText}>Analyse Assignment</Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
               );
             })
@@ -273,8 +287,8 @@ export default function Classroom() {
         visible={uploadModalVisible}
         onClose={() => setUploadModalVisible(false)}
         onSelectOption={handleUploadOption}
-        classroomId={id as string} // classroom ID
-        assignmentId={selectedAssignmentId} // assignment ID
+        classroomId={id as string}
+        assignmentId={selectedAssignmentId}
       />
     </View>
   );
@@ -284,8 +298,6 @@ const styles = StyleSheet.create({
   wrapper: {
     flex: 1,
     backgroundColor: '#f5f5f5',
-  },
-  container: {
     padding: 16,
   },
   centered: {
@@ -295,62 +307,64 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: '#007BFF',
-    borderRadius: 12,
     padding: 16,
-    marginBottom: 20,
+    borderRadius: 8,
+    marginBottom: 16,
   },
   backButton: {
-    marginBottom: 8,
+    position: 'absolute',
+    top: 16,
+    left: 16,
+    zIndex: 1,
   },
   classTitle: {
     fontSize: 24,
-    fontWeight: 'bold',
     color: '#fff',
+    fontWeight: 'bold',
   },
   classSubtitle: {
     fontSize: 14,
     color: '#fff',
-    marginTop: 4,
+    marginTop: 6,
   },
   infoSection: {
-    marginBottom: 20,
+    marginBottom: 16,
   },
   infoCard: {
     backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 12,
+    padding: 12,
+    borderRadius: 8,
     marginBottom: 12,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 1,
   },
   infoTitle: {
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#555',
   },
   infoValue: {
-    fontSize: 16,
-    color: '#000',
+    fontSize: 14,
+    color: '#222',
+    marginTop: 6,
   },
   assignmentSection: {
-    marginBottom: 20,
+    marginBottom: 16,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 12,
-    color: '#333',
   },
   noAssignments: {
-    color: '#999',
-    fontStyle: 'italic',
+    fontSize: 14,
+    color: '#888',
   },
   assignmentCard: {
     backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#ddd',
   },
   assignmentTitle: {
     fontSize: 16,
@@ -358,17 +372,19 @@ const styles = StyleSheet.create({
     color: '#222',
   },
   assignmentDescription: {
+    fontSize: 14,
+    color: '#555',
     marginTop: 6,
-    color: '#444',
   },
   assignmentDueDate: {
+    fontSize: 12,
+    color: '#888',
     marginTop: 6,
-    color: '#d32f2f',
   },
   uploadButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#4caf50',
+    backgroundColor: '#007BFF',
     padding: 8,
     borderRadius: 6,
     marginTop: 10,
@@ -377,21 +393,30 @@ const styles = StyleSheet.create({
     color: '#fff',
     marginLeft: 6,
   },
-  fabContainer: {
-    position: 'absolute',
-    bottom: 30,
-    right: 20,
-    backgroundColor: '#007BFF',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 30,
+  analyseButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    elevation: 4,
+    backgroundColor: '#007BFF',
+    padding: 8,
+    borderRadius: 6,
+    marginTop: 10,
+  },
+  analyseText: {
+    color: '#fff',
+    marginLeft: 6,
+  },
+  fabContainer: {
+    position: 'absolute',
+    right: 16,
+    bottom: 16,
+    backgroundColor: '#007BFF',
+    padding: 16,
+    borderRadius: 50,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   fabText: {
     color: '#fff',
-    marginLeft: 8,
-    fontWeight: 'bold',
+    marginLeft: 6,
   },
 });
