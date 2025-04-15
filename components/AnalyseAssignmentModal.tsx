@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react'; 
 import { Modal, View, StyleSheet, TouchableOpacity, ActivityIndicator, FlatList, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { collection, getDocs } from 'firebase/firestore';
@@ -46,13 +46,19 @@ const AnalyseAssignmentModal: React.FC<AnalyseAssignmentModalProps> = ({
     }
   }, [visible, assignmentId]);
 
+  const formatDate = (timestamp: any) => {
+    if (!timestamp) return 'N/A';
+    const date = new Date(timestamp.seconds * 1000);
+    return date.toLocaleString();
+  };
+
   const renderMetaData = (metaDoc: any) => {
     return (
       <View key={metaDoc.id} style={styles.card}>
         <Text style={styles.cardTitle}>Meta Data</Text>
         <Text>Assignment ID: {metaDoc.assignmentId}</Text>
         <Text>Classroom ID: {metaDoc.classroomId}</Text>
-        <Text>Created At: {metaDoc.createdAt ? new Date(metaDoc.createdAt).toLocaleString() : 'N/A'}</Text>
+        <Text>Created At: {formatDate(metaDoc.createdAt)}</Text>
       </View>
     );
   };
@@ -61,7 +67,9 @@ const AnalyseAssignmentModal: React.FC<AnalyseAssignmentModalProps> = ({
     return (
       <View key={item.id} style={styles.tableRow}>
         <Text style={styles.tableCell}>{item.email}</Text>
-        <Text style={styles.tableCell}>{item.submittedAt ? new Date(item.submittedAt).toLocaleString() : 'N/A'}</Text>
+        <Text style={styles.tableCell}>
+          {item.submittedAt ? formatDate(item.submittedAt) : 'N/A'}
+        </Text>
       </View>
     );
   };
@@ -106,13 +114,13 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 20,
     backgroundColor: 'white',
-    paddingTop: 50, // Add extra padding to prevent content from overlapping with close button
+    paddingTop: 50, // Make sure the content is not covered by the button
   },
   closeButton: {
     position: 'absolute',
     top: 20, // Position close button 20px from the top
     right: 10,
-    zIndex: 10, // Ensure the button stays above the content
+    zIndex: 100, // Ensure button stays above the content
   },
   card: {
     marginBottom: 15,

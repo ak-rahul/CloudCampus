@@ -138,6 +138,8 @@ const UploadModal: React.FC<UploadModalProps> = ({
       }
   
       const db = getFirestore();
+  
+      // 🔥 assignmentId is the collection name, user's email is the doc ID
       const submissionRef = doc(db, assignmentId, currentUser.email);
   
       await setDoc(submissionRef, {

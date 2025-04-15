@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import AnalyseAssignmentModal from '../components/AnalyseAssignmentModal'; // adjust path if needed
+import AnalyseAssignmentModal from './AnalyseAssignmentModal'; // Ensure path is correct
 
 const AssignmentBox = ({
   assignment,
@@ -24,11 +24,18 @@ const AssignmentBox = ({
         Due: {assignment.dueDate?.toDate().toLocaleString() || 'N/A'}
       </Text>
 
-      {!isCreator && canSubmit && (
+      {!isCreator && canSubmit && !isSubmitted && (
         <TouchableOpacity style={styles.button} onPress={onUploadClick}>
           <Ionicons name="cloud-upload" size={20} color="#fff" />
           <Text style={styles.buttonText}>Upload</Text>
         </TouchableOpacity>
+      )}
+
+      {isSubmitted && (
+        <View style={styles.submittedBadge}>
+          <Ionicons name="checkmark-done" size={18} color="#fff" />
+          <Text style={styles.submittedText}>Submitted</Text>
+        </View>
       )}
 
       {isCreator && (
@@ -87,10 +94,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  submittedBadge: {
+    marginTop: 10,
+    backgroundColor: '#6c757d',
+    flexDirection: 'row',
+    padding: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   buttonText: {
     color: '#fff',
     marginLeft: 8,
     fontWeight: '600',
+  },
+  submittedText: {
+    color: '#fff',
+    marginLeft: 6,
   },
 });
 

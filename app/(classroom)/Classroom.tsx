@@ -1,8 +1,24 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ActivityIndicator,
+  ScrollView,
+  TouchableOpacity,
+  Alert,
+} from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { getFirestore, doc, getDoc, collection, onSnapshot, setDoc, Timestamp } from 'firebase/firestore';
 import { Ionicons } from '@expo/vector-icons';
+import {
+  getFirestore,
+  doc,
+  getDoc,
+  collection,
+  onSnapshot,
+  setDoc,
+  Timestamp,
+} from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import * as DocumentPicker from 'expo-document-picker';
@@ -12,90 +28,67 @@ import AssignmentBox from '../../components/AssignmentBox';
 export default function Classroom() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
-  const [classroom, setClassroom] = useState<any>(null);
+  const [classroom, setClassroom] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isCreator, setIsCreator] = useState(false);
-  const [assignments, setAssignments] = useState<any[]>([]);
-  const [submittedAssignments, setSubmittedAssignments] = useState<Set<string>>(new Set());
+  const [assignments, setAssignments] = useState([]);
+  const [submittedAssignments, setSubmittedAssignments] = useState(new Set());
   const [uploadModalVisible, setUploadModalVisible] = useState(false);
-  const [selectedAssignmentId, setSelectedAssignmentId] = useState<string | null>(null);
+  const [selectedAssignmentId, setSelectedAssignmentId] = useState(null);
 
   const db = getFirestore();
   const auth = getAuth();
 
   useEffect(() => {
-    const fetchClassroom = async () => {
-      try {
-        const classroomDoc = await getDoc(doc(db, 'classrooms', id as string));
-        if (classroomDoc.exists()) {
-          const data = { id: classroomDoc.id, ...classroomDoc.data() };
-          setClassroom(data);
+    if (!id) return;
 
-          const currentUser = auth.currentUser;
-          if (currentUser && currentUser.email === data.createdBy) {
-            setIsCreator(true);
-          }
+    const fetchClassroom = async () => {
+      const classroomRef = doc(db, 'classrooms', id);
+      const classroomDoc = await getDoc(classroomRef);
+
+      if (classroomDoc.exists()) {
+        const data = { id: classroomDoc.id, ...classroomDoc.data() };
+        setClassroom(data);
+        if (auth.currentUser?.email === data.createdBy) {
+          setIsCreator(true);
         }
-      } catch (error) {
-        console.error('Error loading classroom:', error);
-      } finally {
-        setLoading(false);
       }
+
+      setLoading(false);
     };
 
-    fetchClassroom();
+    const unsubscribe = onSnapshot(collection(db, 'classrooms', id, 'assignments'), async (snapshot) => {
+      const fetched = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+      setAssignments(fetched);
 
-    const unsubscribe = onSnapshot(
-      collection(db, 'classrooms', id as string, 'assignments'),
-      async (snapshot) => {
-        const fetchedAssignments = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        setAssignments(fetchedAssignments);
-
-        const currentUser = auth.currentUser;
-        if (currentUser) {
-          const submittedSet = new Set<string>();
-
-          for (const docSnap of snapshot.docs) {
-            const assignmentId = docSnap.id;
-            const submissionRef = doc(db, assignmentId, currentUser.email);
-            const submissionDoc = await getDoc(submissionRef);
-            if (submissionDoc.exists()) {
-              submittedSet.add(assignmentId);
-            }
-          }
-
-          setSubmittedAssignments(submittedSet);
-        }
-      },
-      (error) => {
-        console.error('Error fetching assignments:', error);
+      const currentUser = auth.currentUser;
+      const submitted = new Set();
+      for (const snap of snapshot.docs) {
+        const submissionRef = doc(db, snap.id, currentUser.email);
+        const submissionDoc = await getDoc(submissionRef);
+        if (submissionDoc.exists()) submitted.add(snap.id);
       }
-    );
+      setSubmittedAssignments(submitted);
+    });
 
+    fetchClassroom();
     return () => unsubscribe();
-  }, []);
+  }, [id]);
 
-  const openUploadModal = (assignmentId: string) => {
+  const openUploadModal = (assignmentId) => {
     setSelectedAssignmentId(assignmentId);
     setUploadModalVisible(true);
   };
 
-  const handleUploadOption = async (option: 'scanner' | 'file') => {
+  const handleUploadOption = async (option) => {
     setUploadModalVisible(false);
     if (!selectedAssignmentId) return;
 
     if (option === 'scanner') {
       router.push(`/scanner?assignmentId=${selectedAssignmentId}&classroomId=${id}`);
-      return;
-    }
-
-    if (option === 'file') {
+    } else if (option === 'file') {
       try {
         const result = await DocumentPicker.getDocumentAsync({ type: '*/*' });
-
         if (result.canceled) return;
 
         const file = result.assets[0];
@@ -103,20 +96,11 @@ export default function Classroom() {
         const blob = await response.blob();
 
         const storage = getStorage();
-        const storageRef = ref(
-          storage,
-          `submissions/${id}/${selectedAssignmentId}/${auth.currentUser?.uid}_${file.name}`
-        );
-
+        const storageRef = ref(storage, `submissions/${id}/${selectedAssignmentId}/${auth.currentUser?.uid}_${file.name}`);
         await uploadBytes(storageRef, blob);
+
         const downloadURL = await getDownloadURL(storageRef);
-
-        const submissionRef = doc(
-          db,
-          selectedAssignmentId,
-          auth.currentUser?.email!
-        );
-
+        const submissionRef = doc(db, selectedAssignmentId, auth.currentUser?.email);
         await setDoc(submissionRef, {
           submittedAt: Timestamp.now(),
           downloadURL,
@@ -127,26 +111,18 @@ export default function Classroom() {
         Alert.alert('Success', 'Document uploaded successfully!');
         setSubmittedAssignments((prev) => new Set(prev.add(selectedAssignmentId)));
       } catch (err) {
-        console.error('Upload failed:', err);
+        console.error(err);
         Alert.alert('Error', 'Failed to upload document');
       }
     }
   };
 
   if (loading) {
-    return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#007BFF" />
-      </View>
-    );
+    return <View style={styles.centered}><ActivityIndicator size="large" color="#007BFF" /></View>;
   }
 
   if (!classroom) {
-    return (
-      <View style={styles.centered}>
-        <Text>Classroom not found</Text>
-      </View>
-    );
+    return <View style={styles.centered}><Text>Classroom not found</Text></View>;
   }
 
   return (
@@ -157,9 +133,7 @@ export default function Classroom() {
             <Ionicons name="arrow-back" size={24} color="#fff" />
           </TouchableOpacity>
           <Text style={styles.classTitle}>{classroom.name}</Text>
-          <Text style={styles.classSubtitle}>
-            {classroom.description || 'No description'}
-          </Text>
+          <Text style={styles.classSubtitle}>{classroom.description || 'No description'}</Text>
         </View>
 
         <View style={styles.assignmentSection}>
@@ -169,8 +143,7 @@ export default function Classroom() {
           ) : (
             assignments.map((assignment) => {
               const isSubmitted = submittedAssignments.has(assignment.id);
-              const canSubmit =
-                !isCreator && assignment.dueDate && assignment.dueDate.toDate() > new Date();
+              const canSubmit = !isCreator && assignment.dueDate?.toDate() > new Date();
 
               return (
                 <AssignmentBox
@@ -180,6 +153,7 @@ export default function Classroom() {
                   isSubmitted={isSubmitted}
                   canSubmit={canSubmit}
                   onUploadClick={() => openUploadModal(assignment.id)}
+                  classroomId={id}
                 />
               );
             })
@@ -191,50 +165,22 @@ export default function Classroom() {
         visible={uploadModalVisible}
         onClose={() => setUploadModalVisible(false)}
         onSelectOption={handleUploadOption}
+        classroomId={id}
+        assignmentId={selectedAssignmentId}
       />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  wrapper: {
-    flex: 1,
-    backgroundColor: '#f1f1f1',
-  },
-  container: {
-    padding: 20,
-  },
-  header: {
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  backButton: {
-    position: 'absolute',
-    left: 10,
-    top: 10,
-  },
-  classTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-  },
-  classSubtitle: {
-    fontSize: 16,
-    color: '#555',
-  },
-  assignmentSection: {
-    marginTop: 20,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  noAssignments: {
-    fontSize: 16,
-    color: '#777',
-  },
-  centered: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
+  wrapper: { flex: 1, backgroundColor: '#f1f1f1' },
+  container: { padding: 20 },
+  header: { alignItems: 'center', marginBottom: 20 },
+  backButton: { position: 'absolute', left: 10, top: 10 },
+  classTitle: { fontSize: 24, fontWeight: 'bold' },
+  classSubtitle: { fontSize: 16, color: '#555' },
+  assignmentSection: { marginTop: 20 },
+  sectionTitle: { fontSize: 18, fontWeight: 'bold' },
+  noAssignments: { fontSize: 16, color: '#777' },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 });
