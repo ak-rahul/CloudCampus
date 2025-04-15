@@ -10,7 +10,6 @@ import {
 } from "react-native";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import * as DocumentPicker from "expo-document-picker";
-import * as FileSystem from "expo-file-system";
 import {
   getFirestore,
   setDoc,
@@ -19,8 +18,7 @@ import {
 } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 import { useRouter } from "expo-router";
-
-import { COLAB_SERVER_URL } from "../constants/constants";
+import { COLAB_SERVER_URL } from "../constants/constants"; // ← e.g., 'http://<ngrok-url>'
 
 interface UploadModalProps {
   visible: boolean;
@@ -38,8 +36,8 @@ const UploadModal: React.FC<UploadModalProps> = ({
   assignmentId,
 }) => {
   const router = useRouter();
-  const [loading, setLoading] = useState<boolean>(false);
-  const [submitted, setSubmitted] = useState<boolean>(false);
+  const [loading, setLoading] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
 
   const handleFilePress = async () => {
     try {
@@ -73,14 +71,13 @@ const UploadModal: React.FC<UploadModalProps> = ({
   const sendPdfToColab = async (pdfUri: string): Promise<string | null> => {
     try {
       const fileName = pdfUri.split("/").pop() || "document.pdf";
-      const file = {
+
+      const formData = new FormData();
+      formData.append("file", {
         uri: pdfUri,
         type: "application/pdf",
         name: fileName,
-      };
-
-      const formData = new FormData();
-      formData.append("file", file as any);
+      } as any);
 
       const response = await fetch(`${COLAB_SERVER_URL}/upload`, {
         method: "POST",
@@ -93,11 +90,6 @@ const UploadModal: React.FC<UploadModalProps> = ({
       if (!response.ok) throw new Error("Failed to receive response from server");
 
       const textContent = await response.text();
-      if (!textContent) {
-        Alert.alert("Processing Error", "Received empty content from server.");
-        return null;
-      }
-
       return textContent;
     } catch (err) {
       console.error("Colab upload error:", err);
@@ -107,41 +99,28 @@ const UploadModal: React.FC<UploadModalProps> = ({
   };
 
   const uploadTextToFirestore = async (textContent: string) => {
-    try {
-      if (!classroomId || !assignmentId) {
-        Alert.alert("Missing Parameters", "Classroom ID or Assignment ID is missing.");
-        return;
-      }
+    const auth = getAuth();
+    const currentUser = auth.currentUser;
 
-      const auth = getAuth();
-      const currentUser = auth.currentUser;
-
-      if (!currentUser || !currentUser.email) {
-        Alert.alert("Authentication Error", "User not logged in.");
-        return;
-      }
-
-      const db = getFirestore();
-
-      const submissionRef = doc(db, assignmentId, currentUser.email);
-
-      await setDoc(submissionRef, {
-        email: currentUser.email,
-        submittedAt: Timestamp.now(),
-        classroomId,
-        assignmentId,
-        content: textContent,
-      });
-
-      Alert.alert("Success", "File submitted successfully.", [
-        {
-          text: "OK",
-        },
-      ]);
-    } catch (error) {
-      console.error("Firestore Upload Error:", error);
-      Alert.alert("Error", "Failed to upload text to Firestore.");
+    if (!currentUser || !currentUser.email) {
+      Alert.alert("Authentication Error", "User not logged in.");
+      return;
     }
+
+    const db = getFirestore();
+    
+    // ➤ Create collection using assignmentId and document with currentUser.email
+    const submissionRef = doc(db, assignmentId, currentUser.email);
+
+    await setDoc(submissionRef, {
+      email: currentUser.email,
+      submittedAt: Timestamp.now(),
+      classroomId,
+      assignmentId,
+      content: textContent,
+    });
+
+    Alert.alert("Success", "File submitted successfully.");
   };
 
   const handleScannerPress = () => {
@@ -170,19 +149,11 @@ const UploadModal: React.FC<UploadModalProps> = ({
             </Text>
           ) : (
             <>
-              <TouchableOpacity
-                style={styles.optionButton}
-                onPress={handleScannerPress}
-                disabled={loading}
-              >
+              <TouchableOpacity style={styles.optionButton} onPress={handleScannerPress} disabled={loading}>
                 <Text style={styles.optionText}>Scan and Upload as PDF</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity
-                style={styles.optionButton}
-                onPress={handleFilePress}
-                disabled={loading}
-              >
+              <TouchableOpacity style={styles.optionButton} onPress={handleFilePress} disabled={loading}>
                 <Text style={styles.optionText}>Upload from Files</Text>
               </TouchableOpacity>
             </>
