@@ -1,10 +1,14 @@
 import { initializeApp, getApps } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
-import { initializeAuth, signOut,getReactNativePersistence } from "firebase/auth";
-import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
+import {
+  initializeAuth,
+  signOut,
+  getReactNativePersistence,
+} from "firebase/auth";
+import ReactNativeAsyncStorage from "@react-native-async-storage/async-storage";
 
-// Firebase configuration object
+// Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyCFS-VoYjOeID6z2KJNw2_9OkbFyfKpGI0",
   authDomain: "cloud-campus-5ebdd.firebaseapp.com",
@@ -15,11 +19,14 @@ const firebaseConfig = {
   measurementId: "G-1GYWHTCL76",
 };
 
-export const app = initializeApp(firebaseConfig);
-export const auth = initializeAuth(app, {
-  persistence: getReactNativePersistence(ReactNativeAsyncStorage)
-});
-export const firestore = getFirestore(app);
-export const storage = getStorage(app);
-export { signOut };
+// Initialize app
+const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 
+// Firebase services
+const auth = initializeAuth(app, {
+  persistence: getReactNativePersistence(ReactNativeAsyncStorage),
+});
+const db = getFirestore(app);
+const storage = getStorage(app);
+
+export { app, auth, db, storage, signOut };

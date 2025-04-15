@@ -4,7 +4,6 @@ import { createStackNavigator } from '@react-navigation/stack';
 import CreateClassroom from './CreateClassroom';
 import JoinClassroom from './JoinClassroom';
 import Classroom from './Classroom';
-import AnalyseAssignment from './AnalyseAssignment';
 
 const Stack = createStackNavigator();
 
@@ -14,7 +13,6 @@ export default function ClassroomLayout() {
       <Stack.Screen name="CreateClassroom" component={CreateClassroom} />
       <Stack.Screen name="JoinClassroom" component={JoinClassroom} />
       <Stack.Screen name="Classroom" component={Classroom} />
-      <Stack.Screen name="AnalyseAssignment" component={AnalyseAssignment} />
     </Stack.Navigator>
   );
 }
