@@ -71,6 +71,7 @@ const UploadModal: React.FC<UploadModalProps> = ({
   const sendPdfToColab = async (pdfUri: string): Promise<string | null> => {
     try {
       const fileName = pdfUri.split("/").pop() || "document.pdf";
+      console.log(fileName, pdfUri)
 
       const formData = new FormData();
       formData.append("file", {

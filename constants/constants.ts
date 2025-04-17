@@ -1,3 +1,3 @@
 // src/constants.ts
-export const FLASK_SERVER_IP = "http://192.168.191.1:5000";
-export const COLAB_SERVER_URL = "https://b5e5-34-82-143-55.ngrok-free.app"
+export const FLASK_SERVER_IP = "https://d3c4-34-87-2-220.ngrok-free.app";
+export const COLAB_SERVER_URL = "https://d3c4-34-87-2-220.ngrok-free.app"
