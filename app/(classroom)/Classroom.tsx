@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import * as Clipboard from 'expo-clipboard';
 import {
   getFirestore,
   doc,
@@ -24,7 +25,7 @@ import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import * as DocumentPicker from 'expo-document-picker';
 import UploadModal from '../../components/UploadModal';
 import AssignmentBox from '../../components/AssignmentBox';
-import AssignmentModal from '../../components/AssignmentModal'; // Import your modal
+import AssignmentModal from '../../components/AssignmentModal';
 
 export default function Classroom() {
   const { id } = useLocalSearchParams();
@@ -136,6 +137,27 @@ export default function Classroom() {
           </TouchableOpacity>
           <Text style={styles.classTitle}>{classroom.name}</Text>
           <Text style={styles.classSubtitle}>{classroom.description || 'No description'}</Text>
+
+          {/* Cards for classroom code and created by */}
+          <View style={styles.cardContainer}>
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>Classroom Code</Text>
+              <Text style={styles.cardContent}>{classroom.code}</Text>
+              <TouchableOpacity
+                style={styles.copyButton}
+                onPress={() => {
+                  Clipboard.setString(classroom.code);
+                  Alert.alert('Success', 'Classroom code copied to clipboard!');
+                }}
+              >
+                <Ionicons name="copy" size={24} color="#6200EE" />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>Created By</Text>
+              <Text style={styles.cardContent}>{classroom.createdBy}</Text>
+            </View>
+          </View>
         </View>
 
         <View style={styles.assignmentSection}>
@@ -192,13 +214,17 @@ export default function Classroom() {
 }
 
 const styles = StyleSheet.create({
-  wrapper: { flex: 1, backgroundColor: '#f1f1f1' },
+  wrapper: { flex: 1, backgroundColor: '#fff' },
   container: { padding: 20 },
-  header: { alignItems: 'center', marginBottom: 20 },
+  header: { alignItems: 'center', marginBottom: 20, backgroundColor: '#6200EE', padding: 15, borderRadius: 10 },
   backButton: { position: 'absolute', left: 10, top: 10 },
-  classTitle: { fontSize: 24, fontWeight: 'bold' },
-  classSubtitle: { fontSize: 16, color: '#555' },
-  assignmentSection: { marginTop: 20 },
+  classTitle: { fontSize: 28, fontWeight: 'bold', color: '#fff' },
+  classSubtitle: { fontSize: 16, color: '#ddd' },
+  cardContainer: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 20, width: '100%' },
+  card: { backgroundColor: '#fff', padding: 15, borderRadius: 8, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 5, elevation: 5, width: '48%' },
+  cardTitle: { fontSize: 16, fontWeight: 'bold', color: '#333' },
+  cardContent: { fontSize: 14, color: '#777' },
+  assignmentSection: { marginTop: 20, marginBottom: 30 },
   sectionTitle: { fontSize: 18, fontWeight: 'bold' },
   noAssignments: { fontSize: 16, color: '#777' },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
@@ -206,7 +232,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 30,
     right: 30,
-    backgroundColor: '#007BFF',
+    backgroundColor: '#6200EE',
     width: 60,
     height: 60,
     borderRadius: 30,
@@ -217,5 +243,15 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowRadius: 4,
     elevation: 5,
+  },
+  copyButton: {
+    marginTop: 10,
+    padding: 8,
+    borderRadius: 5,
+    backgroundColor: '#f0f0f0',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 40,
+    height: 40,
   },
 });
