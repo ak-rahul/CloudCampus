@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Animated } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Animated, Platform } from 'react-native';
 import { auth } from '../../firebase/firebaseConfig'; // Import the auth
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { useRouter } from "expo-router";
@@ -29,6 +29,12 @@ export default function SignIn() {
   };
 
   const handleSignIn = async () => {
+    // Check if email or password fields are empty
+    if (!email || !password) {
+      Alert.alert('Input Error', 'Please enter both email and password.');
+      return; // Prevent further execution if fields are empty
+    }
+
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       console.log('User signed in: ', userCredential.user);
@@ -120,13 +126,16 @@ const styles = StyleSheet.create({
     backgroundColor: '#ff5a5f',
     paddingVertical: 15,
     borderRadius: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.8,
-    shadowRadius: 2,
-    elevation: 5,
     alignItems: 'center',
     justifyContent: 'center',
+    ...(Platform.OS === 'android'
+      ? { elevation: 5 } // Android shadow using elevation
+      : { 
+          shadowColor: '#000', 
+          shadowOffset: { width: 0, height: 2 }, 
+          shadowOpacity: 0.8, 
+          shadowRadius: 2 
+        }),
   },
   buttonText: {
     color: '#fff',

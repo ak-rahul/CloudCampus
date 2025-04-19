@@ -17,7 +17,6 @@ import {
   Timestamp,
 } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
-import { useRouter } from "expo-router";
 import { COLAB_SERVER_URL } from "../constants/constants"; // ← e.g., 'http://<ngrok-url>'
 
 interface UploadModalProps {
@@ -35,7 +34,6 @@ const UploadModal: React.FC<UploadModalProps> = ({
   classroomId,
   assignmentId,
 }) => {
-  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
@@ -71,7 +69,7 @@ const UploadModal: React.FC<UploadModalProps> = ({
   const sendPdfToColab = async (pdfUri: string): Promise<string | null> => {
     try {
       const fileName = pdfUri.split("/").pop() || "document.pdf";
-      console.log(fileName, pdfUri)
+      console.log(fileName, pdfUri);
 
       const formData = new FormData();
       formData.append("file", {
@@ -109,8 +107,6 @@ const UploadModal: React.FC<UploadModalProps> = ({
     }
 
     const db = getFirestore();
-    
-    // ➤ Create collection using assignmentId and document with currentUser.email
     const submissionRef = doc(db, assignmentId, currentUser.email);
 
     await setDoc(submissionRef, {
@@ -122,17 +118,6 @@ const UploadModal: React.FC<UploadModalProps> = ({
     });
 
     Alert.alert("Success", "File submitted successfully.");
-  };
-
-  const handleScannerPress = () => {
-    onClose();
-    router.push({
-      pathname: "/(scanner)/ScannerScreen",
-      params: {
-        classroomId,
-        assignmentId,
-      },
-    });
   };
 
   return (
@@ -149,15 +134,9 @@ const UploadModal: React.FC<UploadModalProps> = ({
               You have already submitted your file.
             </Text>
           ) : (
-            <>
-              <TouchableOpacity style={styles.optionButton} onPress={handleScannerPress} disabled={loading}>
-                <Text style={styles.optionText}>Scan and Upload as PDF</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.optionButton} onPress={handleFilePress} disabled={loading}>
-                <Text style={styles.optionText}>Upload from Files</Text>
-              </TouchableOpacity>
-            </>
+            <TouchableOpacity style={styles.optionButton} onPress={handleFilePress} disabled={loading}>
+              <Text style={styles.optionText}>Upload from Files</Text>
+            </TouchableOpacity>
           )}
 
           {loading && (
