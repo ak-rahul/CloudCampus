@@ -62,7 +62,10 @@ export default function Classroom() {
 
     const unsubscribe = onSnapshot(collection(db, 'classrooms', id, 'assignments'), async (snapshot) => {
       const fetched = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-      setAssignments(fetched);
+
+      // Sort assignments by dueDate in descending order
+      const sortedAssignments = fetched.sort((a, b) => b.dueDate?.toDate() - a.dueDate?.toDate());
+      setAssignments(sortedAssignments);
 
       const currentUser = auth.currentUser;
       const submitted = new Set();
