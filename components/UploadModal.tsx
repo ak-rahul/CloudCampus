@@ -17,7 +17,7 @@ import {
   Timestamp,
 } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
-import { COLAB_SERVER_URL } from "../constants/constants"; // ← e.g., 'http://<ngrok-url>'
+import { COLAB_SERVER_URL } from "../constants/constants";
 
 interface UploadModalProps {
   visible: boolean;
